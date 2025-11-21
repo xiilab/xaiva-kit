@@ -136,30 +136,17 @@ TensorRT 설정
 ```json
 {
   "tensorrt": {
-    "enabled": true,
-    "version": "8.6.1",
-    "required_in_runtime": true,
-    "supported_versions": ["8.6.1", "10.x"],
-    "cuda_compatibility": {
-      "8.6.1": "11.8",
-      "10.x": "12.x"
-    },
-    "description": "TensorRT is required in runtime for inference acceleration. Version 8.x supports CUDA 11.8, Version 10.x supports CUDA 12.x"
+    "version": "8.6.1"
   }
 }
 ```
 
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
-| `enabled` | boolean | ✅ | TensorRT 사용 여부 |
 | `version` | string | ✅ | 사용할 TensorRT 버전 |
-| `required_in_runtime` | boolean | ✅ | 런타임 이미지에 포함 여부 |
-| `supported_versions` | array | ✅ | 지원하는 버전 목록 |
-| `cuda_compatibility` | object | ✅ | CUDA 버전별 호환성 매핑 |
-| `description` | string | ⚠️ | 상세 설명 (선택) |
 
 **⚠️ 중요:**
-- TensorRT는 런타임 이미지에 필수 포함
+- TensorRT는 항상 활성화되며 런타임 이미지에 필수 포함
 - CUDA 버전과 TensorRT 버전이 호환되어야 함
 
 **호환성:**
@@ -295,7 +282,28 @@ APT 시스템 패키지 목록
 
 ## 프리셋 생성 가이드
 
-### 1. 새 프리셋 생성 절차
+### 🚀 간편한 방법: 프리셋 생성기 사용
+
+**추천 방법**: 대화형 프리셋 생성기를 사용하세요.
+
+```bash
+# 새 프리셋 생성 (대화형)
+python3 scripts/preset-generator.py
+
+# 기존 프리셋 목록 확인
+python3 scripts/preset-generator.py --list
+```
+
+프리셋 생성기는:
+- ✅ 실제 사용되는 필드만 포함
+- ✅ 미리 정의된 템플릿 제공 (CUDA 11.8, 12.1)
+- ✅ artifacts 디렉터리 자동 생성
+- ✅ requirements-base.txt 자동 생성
+- ✅ JSON 문법 오류 방지
+
+### 🛠️ 수동 방법: 기존 프리셋 복사
+
+고급 사용자용 수동 생성 방법:
 
 1. **기존 프리셋 복사**
    ```bash
@@ -303,23 +311,22 @@ APT 시스템 패키지 목록
       presets/ubuntu22.04-cuda12.1-torch2.3.json
    ```
 
-2. **필수 필드 수정**
+2. **필수 필드만 수정** (나머지는 제거 가능)
    - `metadata.name`: 파일명과 일치시키기
    - `base_image`: CUDA 버전에 맞는 이미지
-   - `pytorch`: PyTorch 버전 및 CUDA 접미사 변경
-   - `tensorrt`: CUDA 호환 버전 선택
-   - `cuda.version`: CUDA 버전 업데이트
+   - `pytorch.torch_version`: PyTorch 버전 및 CUDA 접미사 변경
+   - `tensorrt.version`: CUDA 호환 버전 선택
+   - `cuda.arch`: GPU 아키텍처 설정
 
 3. **artifacts 디렉터리 생성**
    ```bash
    mkdir -p artifacts/ubuntu22.04-cuda12.1-torch2.3/{wheels,debs,sources}
    ```
 
-4. **requirements.txt 작성**
+4. **requirements-base.txt 작성**
    ```bash
-   cp artifacts/ubuntu22.04-cuda11.8-torch2.1/requirements.txt \
-      artifacts/ubuntu22.04-cuda12.1-torch2.3/requirements.txt
-   # 버전 정보 수정
+   cp artifacts/ubuntu22.04-cuda11.8-torch2.1/requirements-base.txt \
+      artifacts/ubuntu22.04-cuda12.1-torch2.3/requirements-base.txt
    ```
 
 ### 2. 검증 체크리스트
@@ -335,15 +342,13 @@ APT 시스템 패키지 목록
 
 ## 예제
 
-### 완전한 프리셋 예제
+### 단순화된 프리셋 예제
 
 ```json
 {
   "metadata": {
     "name": "ubuntu22.04-cuda11.8-torch2.1",
-    "description": "Production Environment - CUDA 11.8, PyTorch 2.1.0",
-    "created": "2025-11-20",
-    "target_gpu": "NVIDIA RTX 30xx series (Ampere)"
+    "description": "Production Environment - CUDA 11.8, PyTorch 2.1.0, TensorRT 8.6.1"
   },
   "base_image": "nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04",
   "python": {
@@ -351,52 +356,45 @@ APT 시스템 패키지 목록
     "version_without_dot": "310"
   },
   "pytorch": {
-    "version": "2.1.0+cu118",
     "torch_version": "2.1.0+cu118",
-    "torchvision_version": "0.16.0+cu118",
-    "torchaudio_version": "2.1.0+cu118",
     "index_url": "https://download.pytorch.org/whl/torch_stable.html"
   },
   "tensorrt": {
-    "enabled": true,
-    "version": "8.6.1",
-    "required_in_runtime": true,
-    "supported_versions": ["8.6.1"],
-    "cuda_compatibility": {
-      "8.6.1": "11.8"
-    },
-    "description": "TensorRT for inference acceleration"
+    "version": "8.6.1"
   },
   "cuda": {
-    "version": "11.8",
-    "arch": "86",
-    "arch_name": "ampere"
+    "arch": "86"
   },
   "build_options": {
     "ffmpeg_version": "4.2",
-    "opencv_version": "4.9.0",
-    "build_opencv_from_source": false,
-    "opencv_cuda_enabled": false,
+    "opencv_version": "4.11.0",
     "xaiva_media_source": {
-      "type": "external",
-      "path": "/path/to/xaiva-media",
-      "branch": "master"
+      "path": "xaiva-media",
+      "branch": "feature/standardize-cuda11-pytorch21"
     }
-  },
-  "system_packages": [
-    "build-essential",
-    "cmake",
-    "git"
-  ],
-  "environment": {
-    "TZ": "Asia/Seoul",
-    "LC_ALL": "C.UTF-8",
-    "LD_LIBRARY_PATH": "/usr/local/lib:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64",
-    "NVIDIA_VISIBLE_DEVICES": "all",
-    "NVIDIA_DRIVER_CAPABILITIES": "video,compute,utility"
   }
 }
 ```
+
+### 구 프리셋 vs 새 프리셋 비교
+
+| 구분 | 기존 프리셋 | 단순화된 프리셋 |
+|------|------------|----------------|
+| 라인 수 | ~100 라인 | ~25 라인 |
+| 필드 수 | 25+ 필드 | 11 필드 |
+| 복잡도 | 높음 | 낮음 |
+| 유지보수 | 어려움 | 쉬움 |
+| 실제 사용 필드 | 45% | 100% |
+
+**제거된 필드들:**
+- ❌ `metadata.created`, `metadata.target_gpu` (문서용)
+- ❌ `pytorch.version`, `torchvision_version`, `torchaudio_version` (중복/자동)
+- ❌ `tensorrt.enabled`, `required_in_runtime`, `supported_versions` 등 (항상 true/고정값)
+- ❌ `cuda.version`, `cuda.arch_name` (베이스 이미지 포함/문서용)
+- ❌ `build_options.build_*_from_source`, `opencv_cuda_enabled` (항상 true)
+- ❌ `build_options.xaiva_media_source.type`, `description` (항상 external/문서용)
+- ❌ `system_packages`, `environment` (Dockerfile에 하드코딩됨)
+
 
 ---
 

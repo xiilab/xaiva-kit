@@ -1,9 +1,7 @@
 {
   "metadata": {
     "name": "preset-name",
-    "description": "Brief description of this preset",
-    "created": "YYYY-MM-DD",
-    "target_gpu": "Target GPU architecture (e.g., NVIDIA RTX 30xx series)"
+    "description": "Brief description of this preset"
   },
   "base_image": "nvidia/cuda:X.X.X-cudnnX-devel-ubuntuXX.XX",
   "python": {
@@ -11,90 +9,21 @@
     "version_without_dot": "310"
   },
   "pytorch": {
-    "version": "X.X.X+cuXXX",
     "torch_version": "X.X.X+cuXXX",
-    "torchvision_version": "X.X.X+cuXXX",
-    "torchaudio_version": "X.X.X+cuXXX",
     "index_url": "https://download.pytorch.org/whl/torch_stable.html"
   },
   "tensorrt": {
-    "enabled": false,
     "version": "X.X.X"
   },
   "cuda": {
-    "version": "X.X",
-    "arch": "XX",
-    "arch_name": "architecture_name"
+    "arch": "XX"
   },
   "build_options": {
     "ffmpeg_version": "X.X",
     "opencv_version": "X.X.X",
-    "build_ffmpeg_from_source": true,
-    "build_opencv_from_source": true,
-    "opencv_cuda_enabled": true,
     "xaiva_media_source": {
-      "type": "external",
       "path": "xaiva-media",
-      "branch": "main",
-      "description": "Xaiva Media source path relative to build context or absolute path"
+      "branch": "main"
     }
-  },
-  "system_packages": [
-    "autoconf",
-    "automake",
-    "build-essential",
-    "curl",
-    "git-core",
-    "git-lfs",
-    "libass-dev",
-    "libfreetype6-dev",
-    "libgnutls28-dev",
-    "libmp3lame-dev",
-    "libsdl2-dev",
-    "libtool",
-    "libva-dev",
-    "libvdpau-dev",
-    "libvorbis-dev",
-    "libxcb1-dev",
-    "libxcb-shm0-dev",
-    "libxcb-xfixes0-dev",
-    "meson",
-    "ninja-build",
-    "pkg-config",
-    "texinfo",
-    "wget",
-    "yasm",
-    "zlib1g-dev",
-    "libssl-dev",
-    "openssl",
-    "unzip",
-    "vim",
-    "gdb",
-    "nasm",
-    "lftp",
-    "libnuma-dev",
-    "jq",
-    "tzdata",
-    "ntp",
-    "libtbb-dev",
-    "libatlas-base-dev",
-    "gfortran",
-    "libeigen3-dev",
-    "libv4l-dev",
-    "v4l-utils",
-    "libjpeg-dev",
-    "libtiff5-dev",
-    "libpng-dev",
-    "libwebp-dev",
-    "libopenjp2.7-dev",
-    "cmake",
-    "redis-server"
-  ],
-  "environment": {
-    "TZ": "Asia/Seoul",
-    "LC_ALL": "C.UTF-8",
-    "LD_LIBRARY_PATH": "/usr/local/lib:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64",
-    "NVIDIA_VISIBLE_DEVICES": "all",
-    "NVIDIA_DRIVER_CAPABILITIES": "video,compute,utility"
   }
 }

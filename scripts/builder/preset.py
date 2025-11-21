@@ -72,8 +72,6 @@ def validate_preset(preset: Dict[str, Any]) -> List[str]:
         ("tensorrt", dict),
         ("cuda", dict),
         ("build_options", dict),
-        ("system_packages", list),
-        ("environment", dict),
     ]
     
     for field, expected_type in required_fields:
@@ -83,21 +81,8 @@ def validate_preset(preset: Dict[str, Any]) -> List[str]:
             errors.append(f"Field {field} must be {expected_type.__name__}")
     
     # TensorRT-CUDA 호환성 체크
-    if "tensorrt" in preset and "cuda" in preset:
-        tensorrt = preset["tensorrt"]
-        cuda_version = preset["cuda"].get("version", "")
-        
-        if tensorrt.get("enabled") and tensorrt.get("required_in_runtime"):
-            compatibility = tensorrt.get("cuda_compatibility", {})
-            tensorrt_version = tensorrt.get("version", "")
-            
-            if tensorrt_version in compatibility:
-                expected_cuda = compatibility[tensorrt_version]
-                if not cuda_version.startswith(expected_cuda):
-                    errors.append(
-                        f"TensorRT {tensorrt_version} requires CUDA {expected_cuda}, "
-                        f"but preset uses CUDA {cuda_version}"
-                    )
+    # 단순화된 프리셋에는 cuda.version이 없으므로 호환성 체크 생략
+    # TensorRT는 항상 활성화되며, 버전은 base_image에서 관리됨
     
     return errors
 

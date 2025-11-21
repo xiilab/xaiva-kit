@@ -139,7 +139,7 @@ if command -v jq &> /dev/null; then
     PYTORCH_VERSION=$(jq -r '.pytorch.torch_version // empty' "$PRESET_FILE")
     PYTORCH_INDEX_URL=$(jq -r '.pytorch.index_url // empty' "$PRESET_FILE")
     TENSORRT_VERSION=$(jq -r '.tensorrt.version // empty' "$PRESET_FILE")
-    TENSORRT_ENABLED=$(jq -r '.tensorrt.enabled // false' "$PRESET_FILE")
+    TENSORRT_ENABLED="true"  # TensorRT는 항상 활성화됨
 else
     print_warning "jq not found. Using default versions."
     PYTORCH_VERSION="2.1.0+cu118"
@@ -161,7 +161,7 @@ cd "$WHEELS_DIR"
 # Core packages (고정 버전)
 print_info "Downloading core packages..."
 pip3 download numpy==1.23.1
-pip3 download scipy==1.11.4
+pip3 download scipy==1.10.1
 
 # PyTorch 패키지 (커스텀 인덱스 사용)
 if [ -n "$PYTORCH_VERSION" ] && [ -n "$PYTORCH_INDEX_URL" ]; then

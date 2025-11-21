@@ -9,7 +9,7 @@
 python3 scripts/build.py
 
 # 자동 빌드
-python3 scripts/build.py --preset ubuntu22.04-cuda11.8-torch2.1 --build-type runtime --non-interactive
+python3 scripts/build.py --preset ubuntu22.04-cuda11.8-torch2.1 --non-interactive
 
 # Dry-run (명령어만 확인)
 python3 scripts/build.py --preset ubuntu22.04-cuda11.8-torch2.1 --dry-run
@@ -21,28 +21,28 @@ python3 scripts/build.py --list-presets
 ### 실행
 
 ```bash
-# 런타임 이미지 실행
-docker run --rm -it --gpus all xaiva-kit:ubuntu22.04-cuda11.8-torch2.1-runtime /bin/bash
+# 이미지 실행
+docker run --rm -it --gpus all xaiva-kit:ubuntu22.04-cuda11.8-torch2.1 /bin/bash
 
-# 개발 이미지 실행 (소스 마운트)
+# 소스 마운트와 함께 실행
 docker run --rm -it --gpus all -v $(pwd)/xaiva-kit:/workspace/xaiva-media \
-  xaiva-kit:ubuntu22.04-cuda11.8-torch2.1-dev /bin/bash
+  xaiva-kit:ubuntu22.04-cuda11.8-torch2.1 /bin/bash
 
 # 데몬 모드로 실행
-docker run -d --gpus all --name xaiva-container xaiva-kit:ubuntu22.04-cuda11.8-torch2.1-runtime
+docker run -d --gpus all --name xaiva-container xaiva-kit:ubuntu22.04-cuda11.8-torch2.1
 ```
 
 ### 오프라인 배포
 
 ```bash
 # 이미지 저장
-docker save xaiva-kit:ubuntu22.04-cuda11.8-torch2.1-runtime > xaiva-kit.tar
+docker save xaiva-kit:ubuntu22.04-cuda11.8-torch2.1 > xaiva-kit.tar
 
 # 이미지 로드
 docker load < xaiva-kit.tar
 
 # 이미지 압축 (더 작은 파일)
-docker save xaiva-kit:ubuntu22.04-cuda11.8-torch2.1-runtime | gzip > xaiva-kit.tar.gz
+docker save xaiva-kit:ubuntu22.04-cuda11.8-torch2.1 | gzip > xaiva-kit.tar.gz
 docker load < xaiva-kit.tar.gz
 ```
 

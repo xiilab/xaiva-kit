@@ -69,8 +69,8 @@ def build_docker_image(
         if "index_url" in pytorch:
             build_args["PYTORCH_INDEX_URL"] = pytorch["index_url"]
     
-    # TensorRT 버전 관리
-    if "tensorrt" in preset and preset["tensorrt"].get("enabled"):
+    # TensorRT 버전 관리 (항상 활성화됨)
+    if "tensorrt" in preset:
         tensorrt = preset["tensorrt"]
         if "version" in tensorrt:
             build_args["TENSORRT_VERSION"] = tensorrt["version"]

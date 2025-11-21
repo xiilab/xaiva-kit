@@ -120,7 +120,7 @@ docker run --rm -it --gpus all \
 
 ### 시스템 패키지
 
-시스템 패키지 목록은 프리셋 JSON 파일의 `system_packages` 필드에 정의됩니다.
+시스템 패키지 목록은 Dockerfile에 직접 정의되어 있습니다.
 
 ### 소스 빌드 패키지
 
