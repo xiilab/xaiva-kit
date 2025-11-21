@@ -127,43 +127,157 @@ fi
 print_success "Found requirements.txt"
 
 # =============================================================================
-# Python Wheels 다운로드 (선택 사항 - 현재는 온라인 빌드 사용)
+# Python Wheels 다운로드 (하이브리드 빌드 지원)
 # =============================================================================
 
 print_section "Python packages"
 
-print_info "Python packages are installed directly during Docker build."
-print_info "Wheels directory is no longer required."
+WHEELS_DIR="$PRESET_ARTIFACTS_DIR/wheels"
+
+# 프리셋 JSON에서 정보 읽어오기
+if command -v jq &> /dev/null; then
+    PYTORCH_VERSION=$(jq -r '.pytorch.torch_version // empty' "$PRESET_FILE")
+    PYTORCH_INDEX_URL=$(jq -r '.pytorch.index_url // empty' "$PRESET_FILE")
+    TENSORRT_VERSION=$(jq -r '.tensorrt.version // empty' "$PRESET_FILE")
+    TENSORRT_ENABLED=$(jq -r '.tensorrt.enabled // false' "$PRESET_FILE")
+else
+    print_warning "jq not found. Using default versions."
+    PYTORCH_VERSION="2.1.0+cu118"
+    PYTORCH_INDEX_URL="https://download.pytorch.org/whl/torch_stable.html"
+    TENSORRT_VERSION="8.6.1"
+    TENSORRT_ENABLED="true"
+fi
+
+print_info "Downloading Python wheels for offline build support..."
 echo ""
-echo "버전 관리 패키지들은 Dockerfile에서 직접 설치:"
-echo "  - numpy, scipy"
-echo "  - torch, torchvision, torchaudio"
-echo "  - tensorrt"
-echo ""
-echo "나머지 패키지들은 requirements.txt에서 설치"
+echo "Target packages:"
+echo "  - PyTorch: ${PYTORCH_VERSION}"
+echo "  - TensorRT: ${TENSORRT_VERSION} (enabled: ${TENSORRT_ENABLED})"
+echo "  - Requirements from: ${REQUIREMENTS_FILE}"
 echo ""
 
-# Note: wheels 다운로드는 더 이상 필요하지 않음
-# PyTorch와 다른 패키지들은 Docker 빌드 시 온라인으로 설치됨
+cd "$WHEELS_DIR"
+
+# Core packages (고정 버전)
+print_info "Downloading core packages..."
+pip3 download numpy==1.23.1
+pip3 download scipy==1.11.4
+
+# PyTorch 패키지 (커스텀 인덱스 사용)
+if [ -n "$PYTORCH_VERSION" ] && [ -n "$PYTORCH_INDEX_URL" ]; then
+    print_info "Downloading PyTorch packages..."
+    pip3 download --find-links "$PYTORCH_INDEX_URL" torch=="${PYTORCH_VERSION}"
+    pip3 download --find-links "$PYTORCH_INDEX_URL" torchvision
+    pip3 download --find-links "$PYTORCH_INDEX_URL" torchaudio
+fi
+
+# TensorRT
+if [ "$TENSORRT_ENABLED" = "true" ] && [ -n "$TENSORRT_VERSION" ]; then
+    print_info "Downloading TensorRT..."
+    pip3 download tensorrt=="${TENSORRT_VERSION}"
+fi
+
+# requirements.txt의 나머지 패키지들
+print_info "Downloading packages from requirements.txt..."
+# PyTorch 관련 줄 제외 (이미 다운로드함)
+grep -v -E "^torch|^torchvision|^torchaudio|^--find-links|^numpy==|^scipy==" "$REQUIREMENTS_FILE" > /tmp/filtered_requirements.txt
+pip3 download -r /tmp/filtered_requirements.txt
+rm -f /tmp/filtered_requirements.txt
+
+print_success "Python wheels download completed!"
+
+# 다운로드된 파일 개수 출력
+WHEEL_COUNT=$(ls -1 *.whl 2>/dev/null | wc -l)
+echo "Downloaded wheels: $WHEEL_COUNT files"
+echo ""
 
 # =============================================================================
-# 소스 파일 다운로드 (선택적)
+# 소스 파일 다운로드 (자동 다운로드 지원)
 # =============================================================================
 
 print_section "Source files"
 
 SOURCES_DIR="$PRESET_ARTIFACTS_DIR/sources"
 
-print_info "Source files should be manually placed in: $SOURCES_DIR"
+# 프리셋에서 소스 버전 읽기
+if command -v jq &> /dev/null; then
+    FFMPEG_VERSION=$(jq -r '.build_options.ffmpeg_version // "4.2"' "$PRESET_FILE")
+    OPENCV_VERSION=$(jq -r '.build_options.opencv_version // "4.11.0"' "$PRESET_FILE")
+else
+    FFMPEG_VERSION="4.2"
+    OPENCV_VERSION="4.11.0"
+fi
+
+print_info "Downloading source files for offline build..."
 echo ""
-echo "Required sources (if building from source):"
-echo "  - FFmpeg source tarball (e.g., ffmpeg-4.2.tar.gz)"
-echo "  - OpenCV source tarball (e.g., opencv-4.9.0.tar.gz)"
-echo "  - Xaiva Media source (handled separately)"
+echo "Target sources:"
+echo "  - FFmpeg: ${FFMPEG_VERSION}"
+echo "  - OpenCV: ${OPENCV_VERSION}"
 echo ""
-echo "Download URLs:"
-echo "  - FFmpeg: https://ffmpeg.org/download.html"
-echo "  - OpenCV: https://github.com/opencv/opencv/releases"
+
+cd "$SOURCES_DIR"
+
+# FFmpeg 소스 다운로드
+print_info "Downloading FFmpeg source..."
+FFMPEG_FILE="ffmpeg-${FFMPEG_VERSION}.tar.bz2"
+if [ ! -f "$FFMPEG_FILE" ]; then
+    wget -O "$FFMPEG_FILE" "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.bz2"
+    if [ $? -eq 0 ]; then
+        print_success "Downloaded: $FFMPEG_FILE"
+    else
+        print_warning "Failed to download FFmpeg source"
+    fi
+else
+    print_info "FFmpeg source already exists: $FFMPEG_FILE"
+fi
+
+# OpenCV 소스 다운로드
+print_info "Downloading OpenCV source..."
+OPENCV_FILE="opencv-${OPENCV_VERSION}.zip"
+if [ ! -f "$OPENCV_FILE" ]; then
+    wget -O "$OPENCV_FILE" "https://github.com/opencv/opencv/archive/refs/tags/${OPENCV_VERSION}.zip"
+    if [ $? -eq 0 ]; then
+        print_success "Downloaded: $OPENCV_FILE"
+    else
+        print_warning "Failed to download OpenCV source"
+    fi
+else
+    print_info "OpenCV source already exists: $OPENCV_FILE"
+fi
+
+# OpenCV Contrib 다운로드
+print_info "Downloading OpenCV Contrib source..."
+OPENCV_CONTRIB_FILE="opencv_contrib-${OPENCV_VERSION}.zip"
+if [ ! -f "$OPENCV_CONTRIB_FILE" ]; then
+    wget -O "$OPENCV_CONTRIB_FILE" "https://github.com/opencv/opencv_contrib/archive/refs/tags/${OPENCV_VERSION}.zip"
+    if [ $? -eq 0 ]; then
+        print_success "Downloaded: $OPENCV_CONTRIB_FILE"
+    else
+        print_warning "Failed to download OpenCV Contrib source"
+    fi
+else
+    print_info "OpenCV Contrib source already exists: $OPENCV_CONTRIB_FILE"
+fi
+
+# x265 코덱 소스 다운로드
+print_info "Downloading x265 codec source..."
+X265_FILE="x265.tar.bz2"
+if [ ! -f "$X265_FILE" ]; then
+    wget -O "$X265_FILE" "https://bitbucket.org/multicoreware/x265_git/get/master.tar.bz2"
+    if [ $? -eq 0 ]; then
+        print_success "Downloaded: $X265_FILE"
+    else
+        print_warning "Failed to download x265 source"
+    fi
+else
+    print_info "x265 source already exists: $X265_FILE"
+fi
+
+print_success "Source files download completed!"
+echo ""
+
+# 체크섬 검증 (선택적)
+print_info "Note: Consider adding checksum verification for production use"
 echo ""
 
 # =============================================================================

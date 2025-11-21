@@ -14,6 +14,7 @@ Python 표준 라이브러리만 사용하여 구현되었습니다.
 
 import argparse
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -28,7 +29,6 @@ from builder import (
     generate_image_tag,
     # ui
     select_preset,
-    select_build_type,
     confirm_build,
     # utils
     print_header,
@@ -36,6 +36,7 @@ from builder import (
     print_error,
     print_warning,
     print_success,
+    print_info,
 )
 
 
@@ -43,10 +44,224 @@ from builder import (
 PROJECT_ROOT = Path(__file__).parent.parent
 ENV_FILE = PROJECT_ROOT / ".env"
 ENV_TEMPLATE = PROJECT_ROOT / "env.template"
+ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
 
-# 빌드 타입 정의
-BUILD_TYPES = ["runtime", "dev"]
-DEFAULT_BUILD_TYPE = "runtime"
+# 빌드 타입 제거 - Dev 이미지만 사용
+
+
+def detect_build_mode(preset_name: str) -> str:
+    """
+    artifacts 존재 여부로 빌드 모드 자동 감지
+    
+    Args:
+        preset_name: 프리셋 이름
+    
+    Returns:
+        'offline' if sufficient artifacts found, 'online' otherwise
+    """
+    wheels_dir = ARTIFACTS_DIR / preset_name / "wheels"
+    
+    if not wheels_dir.exists():
+        return "online"
+    
+    # .whl 파일 개수 확인
+    wheel_files = list(wheels_dir.glob("*.whl"))
+    
+    # 최소 10개 이상의 wheel 파일이 있어야 오프라인 모드로 간주
+    if len(wheel_files) >= 10:
+        return "offline"
+    
+    return "online"
+
+
+def print_build_mode_info(build_mode: str, preset_name: str):
+    """
+    빌드 모드 정보 출력
+    
+    Args:
+        build_mode: 빌드 모드
+        preset_name: 프리셋 이름
+    """
+    print_section("Build Mode")
+    
+    if build_mode == "offline":
+        wheels_dir = ARTIFACTS_DIR / preset_name / "wheels"
+        sources_dir = ARTIFACTS_DIR / preset_name / "sources"
+        
+        wheel_count = len(list(wheels_dir.glob("*.whl"))) if wheels_dir.exists() else 0
+        source_count = len(list(sources_dir.glob("*"))) if sources_dir.exists() else 0
+        
+        print("🔒 Offline Mode")
+        print(f"  Using local artifacts from: artifacts/{preset_name}/")
+        print(f"  Python wheels: {wheel_count} files")
+        print(f"  Source files: {source_count} files")
+        print("  ✅ No internet connection required for build")
+    else:
+        print("🌐 Online Mode")
+        print("  Downloading packages directly from internet")
+        print("  ⚠️  Internet connection required for build")
+        
+        # artifacts 상태 표시
+        wheels_dir = ARTIFACTS_DIR / preset_name / "wheels"
+        if wheels_dir.exists():
+            wheel_count = len(list(wheels_dir.glob("*.whl")))
+            if wheel_count > 0:
+                print(f"  📦 Found {wheel_count} local wheels (insufficient for offline mode)")
+    
+    print("")
+
+
+def check_and_switch_xaiva_branch(preset: dict, preset_name: str, non_interactive: bool = False, override_branch: str = None) -> bool:
+    """
+    Xaiva Media 브랜치 확인 및 전환
+    
+    Args:
+        preset: 프리셋 데이터
+        preset_name: 프리셋 이름
+        non_interactive: 비대화형 모드 여부
+        override_branch: CLI로 지정된 브랜치 (프리셋 설정 오버라이드)
+    
+    Returns:
+        성공 여부
+    """
+    # Xaiva Media 소스 설정 확인
+    build_options = preset.get("build_options", {})
+    xaiva_source = build_options.get("xaiva_media_source", {})
+    
+    if not xaiva_source:
+        print_warning("No xaiva_media_source configuration found in preset")
+        return True
+    
+    # 브랜치 결정 (CLI 오버라이드 > 프리셋 설정 > 기본값)
+    if override_branch:
+        target_branch = override_branch
+        print_info(f"Using CLI override branch: {target_branch}")
+    else:
+        target_branch = xaiva_source.get("branch", "main")
+    
+    source_path = xaiva_source.get("path", "xaiva-media")
+    
+    # 절대 경로와 상대 경로 처리
+    if source_path.startswith("/"):
+        # 절대 경로
+        xaiva_path = Path(source_path)
+    else:
+        # 상대 경로 (프로젝트 루트 기준)
+        xaiva_path = PROJECT_ROOT / source_path
+    
+    print_section(f"Xaiva Media Branch Check")
+    print(f"  Source path: {xaiva_path}")
+    print(f"  Target branch: {target_branch}")
+    
+    # 디렉터리 존재 확인
+    if not xaiva_path.exists():
+        print_error(f"Xaiva Media source not found: {xaiva_path}")
+        print("Please ensure the Xaiva Media source is available at the specified path")
+        return False
+    
+    # Git 저장소 확인
+    git_dir = xaiva_path / ".git"
+    if not git_dir.exists():
+        print_error(f"Not a git repository: {xaiva_path}")
+        print("Xaiva Media source must be a git repository for branch management")
+        return False
+    
+    try:
+        # 현재 브랜치 확인
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=xaiva_path,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        current_branch = result.stdout.strip()
+        
+        print(f"  Current branch: {current_branch}")
+        
+        if current_branch == target_branch:
+            print_success("✅ Already on target branch")
+            return True
+        
+        # 브랜치 불일치 처리
+        print_warning(f"Branch mismatch detected!")
+        print(f"  Expected: {target_branch}")
+        print(f"  Current:  {current_branch}")
+        
+        if non_interactive:
+            print_error("Cannot switch branches in non-interactive mode")
+            return False
+        
+        # 사용자 확인
+        print("\nOptions:")
+        print("  1. Switch to target branch (recommended)")
+        print("  2. Continue with current branch")
+        print("  3. Cancel build")
+        
+        while True:
+            choice = input("\nSelect option (1-3) [1]: ").strip() or "1"
+            
+            if choice == "1":
+                # 타겟 브랜치로 전환
+                print(f"\nSwitching to branch '{target_branch}'...")
+                
+                # 원격 브랜치 확인
+                subprocess.run(
+                    ["git", "fetch", "origin"],
+                    cwd=xaiva_path,
+                    check=True
+                )
+                
+                # 브랜치 전환
+                switch_result = subprocess.run(
+                    ["git", "checkout", target_branch],
+                    cwd=xaiva_path,
+                    capture_output=True,
+                    text=True
+                )
+                
+                if switch_result.returncode != 0:
+                    print_error(f"Failed to switch to branch '{target_branch}'")
+                    print(f"Git error: {switch_result.stderr}")
+                    return False
+                
+                print_success(f"✅ Switched to branch: {target_branch}")
+                
+                # 최신 상태로 업데이트
+                pull_result = subprocess.run(
+                    ["git", "pull", "origin", target_branch],
+                    cwd=xaiva_path,
+                    capture_output=True,
+                    text=True
+                )
+                
+                if pull_result.returncode == 0:
+                    print_success("✅ Updated to latest commit")
+                else:
+                    print_warning("Failed to pull latest changes, continuing with current state")
+                
+                return True
+                
+            elif choice == "2":
+                # 현재 브랜치로 계속
+                print_warning("⚠️  Continuing with current branch")
+                print("Note: This may cause build inconsistencies")
+                return True
+                
+            elif choice == "3":
+                # 빌드 취소
+                print("Build cancelled by user")
+                return False
+                
+            else:
+                print("Invalid choice. Please select 1, 2, or 3.")
+    
+    except subprocess.CalledProcessError as e:
+        print_error(f"Git command failed: {e}")
+        return False
+    except Exception as e:
+        print_error(f"Unexpected error during branch check: {e}")
+        return False
 
 
 def load_env_file() -> dict:
@@ -94,13 +309,16 @@ def main():
         epilog="""
 Examples:
   python3 scripts/build.py
-      Interactive mode - prompts for preset and build type
+      Interactive mode - prompts for preset
   
   python3 scripts/build.py --preset ubuntu22.04-cuda11.8-torch2.1
-      Build with specified preset (prompts for build type)
+      Build with specified preset
   
-  python3 scripts/build.py --preset ubuntu22.04-cuda11.8-torch2.1 --build-type runtime
+  python3 scripts/build.py --preset ubuntu22.04-cuda11.8-torch2.1 --non-interactive
       Fully non-interactive build
+  
+  python3 scripts/build.py --preset ubuntu22.04-cuda11.8-torch2.1 --xaiva-branch develop
+      Build with specific Xaiva Media branch
   
   python3 scripts/build.py --list-presets
       List available presets and exit
@@ -113,12 +331,6 @@ Examples:
         help="Preset name to use (skips preset selection)"
     )
     
-    parser.add_argument(
-        "--build-type",
-        type=str,
-        choices=BUILD_TYPES,
-        help=f"Build type: {', '.join(BUILD_TYPES)}"
-    )
     
     parser.add_argument(
         "--non-interactive",
@@ -136,6 +348,20 @@ Examples:
         "--dry-run",
         action="store_true",
         help="Show docker build command without executing"
+    )
+    
+    parser.add_argument(
+        "--build-mode",
+        type=str,
+        choices=["online", "offline", "auto"],
+        default="auto",
+        help="Build mode: online (internet required), offline (use local artifacts), auto (detect)"
+    )
+    
+    parser.add_argument(
+        "--xaiva-branch",
+        type=str,
+        help="Override Xaiva Media branch (overrides preset setting)"
     )
     
     args = parser.parse_args()
@@ -192,6 +418,11 @@ Examples:
     
     print_success("Preset is valid")
     
+    # Xaiva Media 브랜치 체크 및 전환
+    if not check_and_switch_xaiva_branch(preset, preset_name, args.non_interactive, args.xaiva_branch):
+        print_error("Xaiva Media branch check failed")
+        sys.exit(1)
+    
     # Artifacts 체크
     warnings = check_preset_artifacts(preset_name)
     if warnings:
@@ -205,24 +436,25 @@ Examples:
                 print("Build cancelled")
                 sys.exit(0)
     
-    # 빌드 타입 선택
-    if args.build_type:
-        build_type = args.build_type
-    else:
-        if args.non_interactive:
-            build_type = DEFAULT_BUILD_TYPE
-            print(f"Using default build type: {build_type}")
-        else:
-            build_type = select_build_type()
+    
+    # 빌드 모드 결정
+    build_mode = args.build_mode
+    if build_mode == "auto":
+        build_mode = detect_build_mode(preset_name)
+        print_success(f"Auto-detected build mode: {build_mode}")
+    
+    # 빌드 모드 정보 출력
+    if not args.non_interactive:
+        print_build_mode_info(build_mode, preset_name)
     
     # 환경 변수 로드
     env_vars = load_env_file()
     
     # 빌드 확인
-    image_tag = generate_image_tag(preset_name, build_type)
+    image_tag = generate_image_tag(preset_name)
     
     if not args.non_interactive and not args.dry_run:
-        if not confirm_build(preset_name, build_type, image_tag):
+        if not confirm_build(preset_name, image_tag):
             print("Build cancelled")
             sys.exit(0)
     
@@ -230,7 +462,7 @@ Examples:
     exit_code = build_docker_image(
         preset=preset,
         preset_name=preset_name,
-        build_type=build_type,
+        build_mode=build_mode,
         env_vars=env_vars,
         dry_run=args.dry_run
     )

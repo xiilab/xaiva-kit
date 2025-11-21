@@ -6,8 +6,8 @@ XaivaKit Builder Module
 
 from .preset import load_presets, validate_preset, check_preset_artifacts
 from .docker import build_docker_image, generate_image_tag
-from .ui import select_preset, select_build_type, confirm_build
-from .utils import print_header, print_section, print_error, print_warning, print_success
+from .ui import select_preset, confirm_build
+from .utils import print_header, print_section, print_error, print_warning, print_success, print_info
 
 __all__ = [
     # preset
@@ -19,7 +19,6 @@ __all__ = [
     'generate_image_tag',
     # ui
     'select_preset',
-    'select_build_type',
     'confirm_build',
     # utils
     'print_header',
@@ -27,4 +26,5 @@ __all__ = [
     'print_error',
     'print_warning',
     'print_success',
+    'print_info',
 ]

@@ -6,7 +6,7 @@
 
 - ✅ **프리셋 기반 관리**: 환경별 설정을 JSON 프리셋으로 관리
 - ✅ **대화형 빌드**: Python 기반 대화형 빌드 드라이버 제공
-- ✅ **멀티스테이지 Dockerfile**: 개발(Dev) / 런타임(Runtime) 이미지 선택 빌드
+- ✅ **멀티스테이지 Dockerfile**: Dev 이미지 기반 통합 빌드 (개발/배포 겸용)
 - ✅ **버전 관리**: CUDA, Python, PyTorch, TensorRT 등 주요 의존성 버전 관리
 - ✅ **표준 경로 사용**: FHS 준수 (`/usr/local`)로 라이브러리 관리 간소화
 - ✅ **검증된 빌드 방식**: Legacy dockerfile 기반 온라인 빌드
@@ -68,7 +68,6 @@ python3 scripts/build.py --preset ubuntu22.04-cuda11.8-torch2.1
 # 비대화형 모드 (자동화)
 python3 scripts/build.py \
   --preset ubuntu22.04-cuda11.8-torch2.1 \
-  --build-type runtime \
   --non-interactive
 ```
 
@@ -76,7 +75,7 @@ python3 scripts/build.py \
 
 ```bash
 docker run --rm -it --gpus all \
-  xaiva-kit:ubuntu22.04-cuda11.8-torch2.1-runtime \
+  xaiva-kit:ubuntu22.04-cuda11.8-torch2.1 \
   /bin/bash
 ```
 
@@ -115,7 +114,7 @@ docker run --rm -it --gpus all \
 - 패키지 목록: `artifacts/<preset-name>/requirements.txt`
 - Docker 빌드 시 자동 설치
 
-**중요: TensorRT는 런타임 이미지에 필수 포함됩니다.**
+**중요: TensorRT는 이미지에 필수 포함됩니다.**
 - TensorRT 8.x: CUDA 11.8 호환
 - TensorRT 10.x: CUDA 12.x 호환
 
@@ -146,7 +145,7 @@ FFmpeg, OpenCV, Xaiva Media 등은 소스에서 빌드되며, 소스 아카이�
    python3 scripts/build.py --preset ubuntu22.04-cuda11.8-torch2.1
    
    # 2. 이미지 저장
-   docker save xaiva-kit:ubuntu22.04-cuda11.8-torch2.1-runtime > xaiva-kit.tar
+   docker save xaiva-kit:ubuntu22.04-cuda11.8-torch2.1 > xaiva-kit.tar
    
    # 3. tar 파일을 USB/외장 드라이브에 복사
    ```
@@ -160,7 +159,7 @@ FFmpeg, OpenCV, Xaiva Media 등은 소스에서 빌드되며, 소스 아카이�
    docker load < xaiva-kit.tar
    
    # 3. 이미지 실행
-   docker run --rm -it --gpus all xaiva-kit:ubuntu22.04-cuda11.8-torch2.1-runtime /bin/bash
+   docker run --rm -it --gpus all xaiva-kit:ubuntu22.04-cuda11.8-torch2.1 /bin/bash
    ```
 
 자세한 내용은 [빌드 가이드](docs/build-guide.md)를 참조하세요.
@@ -211,7 +210,7 @@ Internal Use Only
 - README 작성
 
 ### ✅ Phase 2-4 완료: 빌드 시스템 구현
-- **Dockerfile**: Multi-stage (base, builder, runtime, dev)
+- **Dockerfile**: Multi-stage (base, builder, dev)
 - **build.py**: 대화형 빌드 드라이버 (Python 표준 라이브러리)
 - **deps_sync.sh**: 의존성 동기화 스크립트
 - **프리셋 스키마**: JSON 스키마 문서화
@@ -231,12 +230,11 @@ python3 scripts/build.py
 # 또는 비대화형 모드
 python3 scripts/build.py \
   --preset ubuntu22.04-cuda11.8-torch2.1 \
-  --build-type runtime \
   --non-interactive
 
 # 3. 이미지 실행
 docker run --rm -it --gpus all \
-  xaiva-kit:ubuntu22.04-cuda11.8-torch2.1-runtime \
+  xaiva-kit:ubuntu22.04-cuda11.8-torch2.1 \
   /bin/bash
 ```
 

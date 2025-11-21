@@ -23,6 +23,7 @@ ARG CUDA_ARCH=86
 ARG FFMPEG_VERSION=4.2
 ARG OPENCV_VERSION=4.11.0
 ARG XAIVA_SOURCE_PATH=xaiva-media
+ARG BUILD_MODE=online
 
 # -----------------------------------------------------------------------------
 # Stage 0: Base Setup
@@ -155,28 +156,55 @@ RUN mkdir -p /root/util && \
 RUN pip3 install --upgrade pip setuptools wheel
 
 # -----------------------------------------------------------------------------
-# Python 패키지 설치 - PyTorch (프리셋에서 버전 관리)
+# Wheels 복사 (오프라인 모드용) - 실패해도 계속 진행
+# -----------------------------------------------------------------------------
+COPY artifacts/${PRESET_NAME}/wheels/ /tmp/wheels/ 2>/dev/null || true
+
+# -----------------------------------------------------------------------------
+# Python 패키지 설치 - PyTorch (하이브리드 빌드 지원)
 # -----------------------------------------------------------------------------
 ARG PYTORCH_VERSION
 ARG PYTORCH_INDEX_URL
+ARG BUILD_MODE
 RUN if [ -n "${PYTORCH_VERSION}" ]; then \
-        pip3 install torch==${PYTORCH_VERSION} torchvision torchaudio \
-        --index-url ${PYTORCH_INDEX_URL}; \
+        if [ "$BUILD_MODE" = "offline" ] && [ -d "/tmp/wheels" ] && [ "$(ls -A /tmp/wheels 2>/dev/null)" ]; then \
+            echo "=== Offline mode: Installing PyTorch from local wheels ==="; \
+            pip3 install --no-index --find-links=/tmp/wheels torch==${PYTORCH_VERSION} torchvision torchaudio; \
+        else \
+            echo "=== Online mode: Downloading PyTorch packages ==="; \
+            pip3 install torch==${PYTORCH_VERSION} torchvision torchaudio \
+            --index-url ${PYTORCH_INDEX_URL}; \
+        fi; \
     fi
 
 # -----------------------------------------------------------------------------
-# Python 패키지 설치 - TensorRT (프리셋에서 버전 관리)
+# Python 패키지 설치 - TensorRT (하이브리드 빌드 지원)
 # -----------------------------------------------------------------------------
 ARG TENSORRT_VERSION
 RUN if [ -n "${TENSORRT_VERSION}" ]; then \
-        pip3 install tensorrt==${TENSORRT_VERSION}; \
+        if [ "$BUILD_MODE" = "offline" ] && [ -d "/tmp/wheels" ] && [ "$(ls -A /tmp/wheels 2>/dev/null)" ]; then \
+            echo "=== Offline mode: Installing TensorRT from local wheels ==="; \
+            pip3 install --no-index --find-links=/tmp/wheels tensorrt==${TENSORRT_VERSION}; \
+        else \
+            echo "=== Online mode: Downloading TensorRT ==="; \
+            pip3 install tensorrt==${TENSORRT_VERSION}; \
+        fi; \
     fi
 
 # -----------------------------------------------------------------------------
-# Python 패키지 설치 - 일반 패키지
+# Python 패키지 설치 - 일반 패키지 (하이브리드 빌드 지원)
 # -----------------------------------------------------------------------------
 COPY artifacts/${PRESET_NAME}/requirements-base.txt /tmp/requirements-base.txt
-RUN pip3 install -r /tmp/requirements-base.txt && \
+RUN if [ "$BUILD_MODE" = "offline" ] && [ -d "/tmp/wheels" ] && [ "$(ls -A /tmp/wheels 2>/dev/null)" ]; then \
+        echo "=== Offline mode: Installing base packages from local wheels ==="; \
+        # PyTorch, numpy, scipy 등은 이미 설치되었으므로 제외
+        grep -v -E "^torch|^torchvision|^torchaudio|^numpy==|^scipy==" /tmp/requirements-base.txt > /tmp/filtered-base.txt; \
+        pip3 install --no-index --find-links=/tmp/wheels -r /tmp/filtered-base.txt; \
+        rm /tmp/filtered-base.txt; \
+    else \
+        echo "=== Online mode: Installing base packages ==="; \
+        pip3 install -r /tmp/requirements-base.txt; \
+    fi && \
     rm /tmp/requirements-base.txt
 
 # PKG_CONFIG_PATH 설정
@@ -236,21 +264,13 @@ RUN echo "Builder stage completed" && \
     ls -la /usr/local/bin/ | head -20 || true
 
 # -----------------------------------------------------------------------------
-# Stage 2: Runtime (배포용 최소 이미지)
+# Stage 2: Dev (개발/배포 통합 이미지)
 # -----------------------------------------------------------------------------
-FROM base AS runtime
+FROM builder AS dev
 
-ARG PRESET_NAME
-ARG PYTHON_VERSION
-ARG PYTHON_VERSION_WITHOUT_DOT
-
-# 런타임 필수 패키지만 설치
+# 런타임 라이브러리 및 개발 도구 추가 설치
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    # Python 런타임
-    python${PYTHON_VERSION} \
-    python${PYTHON_VERSION}-dev \
-    python3-pip \
-    # FFmpeg 런타임 라이브러리
+    # FFmpeg 런타임 라이브러리 (runtime에서 이동)
     libass9 \
     libfreetype6 \
     libgnutls30 \
@@ -261,68 +281,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxcb1 \
     libxcb-shm0 \
     libxcb-xfixes0 \
-    # OpenCV 런타임 라이브러리
+    # OpenCV 런타임 라이브러리 (runtime에서 이동)
     libjpeg8 \
     libtiff5 \
     libpng16-16 \
     libwebp7 \
     libopenjp2-7 \
     libtbb2 \
-    # 기타
-    redis-server \
-    vim \
-    wget \
-    curl \
+    # 추가 런타임 패키지
     libnuma1 \
-    && \
-    # Python 심볼릭 링크 설정
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_VERSION} 2 && \
-    update-alternatives --install /usr/bin/python python /usr/bin/python${PYTHON_VERSION} 2 && \
-    # 캐시 정리
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Builder에서 빌드된 산출물 복사 (표준 경로 사용)
-COPY --from=builder /usr/local/lib/ /usr/local/lib/
-COPY --from=builder /usr/local/bin/ /usr/local/bin/
-COPY --from=builder /usr/local/include/ /usr/local/include/
-
-# Python site-packages에서 cv2 복사 (OpenCV Python 바인딩)
-COPY --from=builder /usr/local/lib/python${PYTHON_VERSION}/site-packages/cv2/ \
-                    /usr/local/lib/python${PYTHON_VERSION}/site-packages/cv2/
-
-# 라이브러리 캐시 업데이트
-RUN ldconfig
-
-# Python 패키지 설치 (Runtime에 필요한 패키지만)
-COPY artifacts/${PRESET_NAME}/requirements.txt /tmp/requirements.txt
-
-RUN pip3 install --upgrade pip setuptools wheel && \
-    pip3 install -r /tmp/requirements.txt && \
-    pip3 cache purge && \
-    rm -rf /tmp/requirements.txt
-
-# 환경 변수 설정 (런타임)
-# /usr/local/bin 과 /usr/local/lib 는 시스템 기본 PATH에 포함됨
-ENV LD_LIBRARY_PATH="/usr/local/lib:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64"
-
-# 작업 디렉터리 설정
-WORKDIR /workspace
-
-# Bash alias 설정
-RUN echo "alias python=python3" >> /root/.bashrc
-
-# 헬스체크 (선택적)
-# HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-#   CMD python3 -c "import torch; print(torch.cuda.is_available())" || exit 1
-
-# -----------------------------------------------------------------------------
-# Stage 3: Dev (개발용 - Builder 기반)
-# -----------------------------------------------------------------------------
-FROM builder AS dev
-
-# 개발 도구 추가 설치
-RUN apt-get update && apt-get install -y --no-install-recommends \
+    # 개발 도구
     gdb \
     valgrind \
     strace \
@@ -336,7 +304,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN wget -P ~ https://github.com/cyrus-and/gdb-dashboard/raw/master/.gdbinit && \
     pip3 install pygments
 
-# 환경 변수 설정 (개발)
+# 라이브러리 캐시 업데이트
+RUN ldconfig
+
+# Python 패키지 설치 (runtime에 필요한 추가 패키지, 하이브리드 빌드 지원)
+COPY artifacts/${PRESET_NAME}/requirements.txt /tmp/requirements.txt
+RUN if [ "$BUILD_MODE" = "offline" ] && [ -d "/tmp/wheels" ] && [ "$(ls -A /tmp/wheels 2>/dev/null)" ]; then \
+        echo "=== Offline mode: Installing runtime packages from local wheels ==="; \
+        # 이미 설치된 패키지들과 find-links 지시문 제외
+        grep -v -E "^torch|^torchvision|^torchaudio|^numpy==|^scipy==|^--find-links" /tmp/requirements.txt > /tmp/filtered-runtime.txt; \
+        pip3 install --no-index --find-links=/tmp/wheels -r /tmp/filtered-runtime.txt; \
+        rm /tmp/filtered-runtime.txt; \
+    else \
+        echo "=== Online mode: Installing runtime packages ==="; \
+        pip3 install -r /tmp/requirements.txt; \
+    fi && \
+    pip3 cache purge && \
+    rm -rf /tmp/requirements.txt
+
+# 환경 변수 설정 (개발/런타임 통합)
 # /usr/local/bin 과 /usr/local/lib 는 시스템 기본 PATH에 포함됨
 ENV LD_LIBRARY_PATH="/usr/local/lib:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64"
 
@@ -345,6 +331,10 @@ WORKDIR /workspace
 
 # Bash alias 설정
 RUN echo "alias python=python3" >> /root/.bashrc
+
+# 헬스체크 (선택적)
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+#   CMD python3 -c "import torch; print(torch.cuda.is_available())" || exit 1
 
 # 기본 명령
 CMD ["/bin/bash"]

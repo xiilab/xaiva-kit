@@ -32,3 +32,8 @@ def print_warning(text: str) -> None:
 def print_success(text: str) -> None:
     """성공 메시지 출력"""
     print(f"\n✅ {text}")
+
+
+def print_info(text: str) -> None:
+    """정보 메시지 출력"""
+    print(f"\nℹ️  {text}")

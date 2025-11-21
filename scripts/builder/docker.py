@@ -16,24 +16,23 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 DOCKERFILE_PATH = PROJECT_ROOT / "docker" / "Dockerfile"
 
 
-def generate_image_tag(preset_name: str, build_type: str) -> str:
+def generate_image_tag(preset_name: str) -> str:
     """
     Docker 이미지 태그를 생성합니다.
     
     Args:
         preset_name: 프리셋 이름
-        build_type: 빌드 타입 (runtime 또는 dev)
     
     Returns:
         이미지 태그
     """
-    return f"xaiva-kit:{preset_name}-{build_type}"
+    return f"xaiva-kit:{preset_name}"
 
 
 def build_docker_image(
     preset: Dict[str, Any],
     preset_name: str,
-    build_type: str,
+    build_mode: str,
     env_vars: Dict[str, str],
     dry_run: bool = False
 ) -> int:
@@ -43,19 +42,20 @@ def build_docker_image(
     Args:
         preset: 프리셋 데이터
         preset_name: 프리셋 이름
-        build_type: 빌드 타입 (runtime 또는 dev)
+        build_mode: 빌드 모드 (online/offline/auto)
         env_vars: 환경 변수
         dry_run: True일 경우 명령어만 출력하고 실행하지 않음
     
     Returns:
         Exit code (0 = success)
     """
-    image_tag = generate_image_tag(preset_name, build_type)
+    image_tag = generate_image_tag(preset_name)
     
     # Build arguments 준비
     build_args = {
         "BASE_IMAGE": preset["base_image"],
         "PRESET_NAME": preset_name,
+        "BUILD_MODE": build_mode,
         "PYTHON_VERSION": preset["python"]["version"],
         "PYTHON_VERSION_WITHOUT_DOT": preset["python"]["version_without_dot"],
         "CUDA_ARCH": preset["cuda"]["arch"],
@@ -95,12 +95,12 @@ def build_docker_image(
     if "XAIVA_MEDIA_SOURCE_PATH" in env_vars:
         build_args["XAIVA_SOURCE_PATH"] = env_vars["XAIVA_MEDIA_SOURCE_PATH"]
     
-    # Docker build 명령어 생성
+    # Docker build 명령어 생성 (항상 dev 타겟 사용)
     cmd = [
         "docker", "build",
         "-f", str(DOCKERFILE_PATH),
         "-t", image_tag,
-        "--target", build_type,
+        "--target", "dev",
     ]
     
     # Build arguments 추가

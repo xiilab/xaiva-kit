@@ -1,41 +1,41 @@
 {
   "metadata": {
-    "name": "ubuntu22.04-cuda11.8-torch2.1",
-    "description": "Production Environment - CUDA 11.8, PyTorch 2.1.0, TensorRT 8.6.1",
-    "created": "2025-11-20",
-    "target_gpu": "NVIDIA RTX 30xx series (Ampere, Arch 86)"
+    "name": "preset-name",
+    "description": "Brief description of this preset",
+    "created": "YYYY-MM-DD",
+    "target_gpu": "Target GPU architecture (e.g., NVIDIA RTX 30xx series)"
   },
-  "base_image": "nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04",
+  "base_image": "nvidia/cuda:X.X.X-cudnnX-devel-ubuntuXX.XX",
   "python": {
     "version": "3.10",
     "version_without_dot": "310"
   },
   "pytorch": {
-    "version": "2.1.0+cu118",
-    "torch_version": "2.1.0+cu118",
-    "torchvision_version": "0.16.0+cu118",
-    "torchaudio_version": "2.1.0+cu118",
+    "version": "X.X.X+cuXXX",
+    "torch_version": "X.X.X+cuXXX",
+    "torchvision_version": "X.X.X+cuXXX",
+    "torchaudio_version": "X.X.X+cuXXX",
     "index_url": "https://download.pytorch.org/whl/torch_stable.html"
   },
   "tensorrt": {
-    "enabled": true,
-    "version": "8.6.1"
+    "enabled": false,
+    "version": "X.X.X"
   },
   "cuda": {
-    "version": "11.8",
-    "arch": "86",
-    "arch_name": "ampere"
+    "version": "X.X",
+    "arch": "XX",
+    "arch_name": "architecture_name"
   },
   "build_options": {
-    "ffmpeg_version": "4.2",
-    "opencv_version": "4.11.0",
+    "ffmpeg_version": "X.X",
+    "opencv_version": "X.X.X",
     "build_ffmpeg_from_source": true,
     "build_opencv_from_source": true,
     "opencv_cuda_enabled": true,
     "xaiva_media_source": {
       "type": "external",
       "path": "xaiva-media",
-      "branch": "feature/standardize-cuda11-pytorch21",
+      "branch": "main",
       "description": "Xaiva Media source path relative to build context or absolute path"
     }
   },
@@ -98,4 +98,3 @@
     "NVIDIA_DRIVER_CAPABILITIES": "video,compute,utility"
   }
 }
-

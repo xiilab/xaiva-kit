@@ -11,11 +11,6 @@ from .utils import print_section, print_error
 from .docker import generate_image_tag
 
 
-# 빌드 타입 정의
-BUILD_TYPES = ["runtime", "dev"]
-DEFAULT_BUILD_TYPE = "runtime"
-
-
 def select_preset(presets: Dict[str, Dict[str, Any]]) -> str:
     """
     사용자가 프리셋을 선택하도록 합니다.
@@ -53,45 +48,13 @@ def select_preset(presets: Dict[str, Dict[str, Any]]) -> str:
             sys.exit(0)
 
 
-def select_build_type() -> str:
-    """
-    사용자가 빌드 타입을 선택하도록 합니다.
-    
-    Returns:
-        선택된 빌드 타입
-    """
-    print_section("Build Type")
-    print("  1. runtime - Production image (minimal size)")
-    print("  2. dev     - Development image (includes build tools)")
-    
-    while True:
-        try:
-            choice = input(f"\nSelect build type (1-2) [default: 1]: ").strip()
-            
-            if not choice:
-                return DEFAULT_BUILD_TYPE
-            
-            idx = int(choice) - 1
-            
-            if 0 <= idx < len(BUILD_TYPES):
-                return BUILD_TYPES[idx]
-            else:
-                print_error("Please enter 1 or 2")
-        
-        except ValueError:
-            print_error("Please enter a valid number")
-        except KeyboardInterrupt:
-            print("\n\nBuild cancelled by user")
-            sys.exit(0)
 
-
-def confirm_build(preset_name: str, build_type: str, image_tag: str) -> bool:
+def confirm_build(preset_name: str, image_tag: str) -> bool:
     """
     빌드 실행 확인
     
     Args:
         preset_name: 프리셋 이름
-        build_type: 빌드 타입
         image_tag: Docker 이미지 태그
     
     Returns:
@@ -99,7 +62,6 @@ def confirm_build(preset_name: str, build_type: str, image_tag: str) -> bool:
     """
     print_section("Build Summary")
     print(f"  Preset:     {preset_name}")
-    print(f"  Build Type: {build_type}")
     print(f"  Image Tag:  {image_tag}")
     
     while True:
