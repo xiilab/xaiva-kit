@@ -1,0 +1,104 @@
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV LD_LIBRARY_PATH="/usr/local/xaiva_media/lib:/usr/include:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64:/usr/local/cuda/include"
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES="video,compute,utility"
+ENV TZ=Asia/Seoul
+ENV LC_ALL="C.UTF-8"
+ENV PATH="/usr/local/xaiva_media/bin:${PATH}"
+
+ARG PYTHON_VERSION
+ARG PYTHON_VERSION_WITHOUT_DOT
+
+ARG CUDA_ARCH 
+ENV CUDA_ARCH=${CUDA_ARCH}
+
+RUN chmod 777 /tmp 
+
+COPY ./xaiva_media_12.08.07+torch21-cp310-cu118-arc86_amd64.deb /tmp/xaiva_media_12.08.07+torch21-cp310-cu118-arc86_amd64.deb
+
+RUN echo "Using PYTHON_VERSION: ${PYTHON_VERSION_WITHOUT_DOT}" && \
+
+apt update && apt-get -y install \
+  autoconf \
+  automake \
+  build-essential \
+  curl \
+  git-core \
+  git-lfs \
+  libass-dev \
+  libfreetype6-dev \
+  libgnutls28-dev \
+  libmp3lame-dev \
+  libsdl2-dev \
+  libtool \
+  libva-dev \
+  libvdpau-dev \
+  libvorbis-dev \
+  libxcb1-dev \
+  libxcb-shm0-dev \
+  libxcb-xfixes0-dev \
+  meson \
+  ninja-build \
+  pkg-config \
+  texinfo \
+  wget \
+  yasm \
+  zlib1g-dev \
+  libssl-dev \
+  openssl \
+  unzip \
+  vim \
+  gdb \
+  nasm \
+  yasm \
+  lftp \
+  libnuma-dev \
+  jq \
+  tzdata \
+  ntp \
+  libtbb-dev \
+  libatlas-base-dev \
+  gfortran \
+  libeigen3-dev \
+  libv4l-dev \
+  v4l-utils \
+  libjpeg-dev \
+  libtiff5-dev \
+  libpng-dev \
+  libwebp-dev \
+  libopenjp2.7-dev \
+  cmake \
+  redis-server \
+  python${PYTHON_VERSION} \
+  python${PYTHON_VERSION}-dev \
+  python3-pip && \
+update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_VERSION} 2 && \
+
+mkdir -p /root/util && cd /root/util && \
+
+pip3 install --upgrade pip setuptools wheel && \
+pip3 install gdown && \
+pip3 install scipy==1.11.4 && \
+pip3 install numpy==1.23.1 && \
+
+pip3 install --find-links https://download.pytorch.org/whl/torch_stable.html torch==2.1.0+cu118 && \
+pip3 install --find-links https://download.pytorch.org/whl/torch_stable.html torchvision==0.16.0+cu118 && \
+pip3 install --find-links https://download.pytorch.org/whl/torch_stable.html torchaudio==2.1.0+cu118 && \
+pip3 install packaging webcolors matplotlib yacs scikit-learn scikit-image torchgeometry pytz requests redis GPUtil opencv-python && \
+
+pip3 install tensorrt==8.6.1 && \
+
+apt clean && \
+rm -rf /var/lib/apt/lists/* && \
+pip cache purge && \
+
+rm -rf /var/nv-tensorrt-local-repo-ubuntu2204-8.5.1-cuda-11.8 && \
+rm -rf /root/util/ && \
+
+echo "alias python=python3" >> ~/.bashrc && \
+bash -c "source ~/.bashrc"
+
+RUN dpkg -i /tmp/xaiva_media_12.08.07+torch21-cp310-cu118-arc86_amd64.deb && \
+    rm -f /tmp/xaiva_media_12.08.07+torch21-cp310-cu118-arc86_amd64.deb

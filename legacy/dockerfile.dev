@@ -1,0 +1,202 @@
+FROM xiilab/xaiva_media_base:latest 
+
+# Set Env
+ARG DEBIAN_FRONTEND=noninteractive
+ENV PKG_CONFIG_PATH="/root/xaiva-media/Third_party/ffmpeg_build/lib/pkgconfig:/root/xaiva-media/Third_party/opencv/lib/pkgconfig:${PKG_CONFIG_PATH}"
+ENV THIRD_PARTY_PATH="/root/xaiva-media/Third_party"
+ENV LD_LIBRARY_PATH="/usr/local/xaiva_media/lib:/usr/include:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64:/usr/local/cuda/include"
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES="video,compute,utility"
+ENV TZ=Asia/Seoul
+ENV LC_ALL="C.UTF-8"
+ENV PATH="/usr/local/xaiva_media/bin:${PATH}"
+
+RUN echo "Using CUDA_ARCH: ${CUDA_ARCH}" && \
+
+wget https://github.com/Kitware/CMake/releases/download/v3.17.3/cmake-3.17.3.tar.gz --no-check-certificate && \
+tar zxf cmake-3.17.3.tar.gz && \
+cd cmake-3.17.3 && \
+./bootstrap --prefix=/usr && make -j && make install -j && \
+cd .. && \
+rm -rf cmake-3.17.3 && \
+rm -f cmake-3.17.3.tar.gz && \
+cd /root && \
+GITHUB_KEY="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" && \
+git clone https://${GITHUB_KEY}@github.com/xiilab/xaiva-media.git && \
+
+cd /root && \
+git -C x264 pull 2> /dev/null || git clone --depth 1 https://code.videolan.org/videolan/x264.git && \
+cd x264 && \
+PATH="$THIRD_PARTY_PATH/libx264:$PATH" PKG_CONFIG_PATH="$THIRD_PARTY_PATH/pkgconfig" ./configure --prefix="$THIRD_PARTY_PATH/ffmpeg_build" --bindir="$THIRD_PARTY_PATH/libx264" --enable-static --enable-pic && \
+PATH="$THIRD_PARTY_PATH/libx264:$PATH" make -j && \
+make install && cd /root && \
+rm -rf x264 && \
+
+cd /root && \
+wget -O x265.tar.bz2 https://bitbucket.org/multicoreware/x265_git/get/master.tar.bz2 && \
+tar xjvf x265.tar.bz2 && \
+cd multicoreware*/build/linux && \
+PATH="$THIRD_PARTY_PATH/libx265:$PATH" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$THIRD_PARTY_PATH/ffmpeg_build" -DENABLE_SHARED:bool=off ../../source && \
+PATH="$THIRD_PARTY_PATH/libx265:$PATH" make -j && \
+make install && cd /root && \
+rm -f x265.tar.bz2 && \
+rm -rf multicoreware* && \
+sed -i '/^Libs.private/c\Libs.private: -lstdc++ -lm -lgcc -lrt -ldl -lnuma' $THIRD_PARTY_PATH/ffmpeg_build/lib/pkgconfig/x265.pc && \
+
+cd /root && \
+git -C libvpx pull 2> /dev/null || git clone --depth 1 https://chromium.googlesource.com/webm/libvpx.git && \
+cd libvpx && \
+PATH="$THIRD_PARTY_PATH/libvpx:$PATH" ./configure --prefix="$THIRD_PARTY_PATH/ffmpeg_build" --enable-pic --enable-static --disable-examples --disable-unit-tests --enable-vp9-highbitdepth --as=yasm && \
+PATH="$THIRD_PARTY_PATH/libvpx:$PATH" make -j && \
+make install && cd /root && \
+rm -rf libvpx && \
+
+cd /root && \
+git -C opus pull 2> /dev/null || git clone --depth 1 https://github.com/xiph/opus.git && \
+cd opus && \
+./autogen.sh && \
+./configure --prefix="$THIRD_PARTY_PATH/ffmpeg_build"  --with-pic --disable-shared && \
+make -j && \
+make install && cd /root && \
+rm -rf opus && \
+
+cd /root && \
+git -C fdk-aac pull 2> /dev/null || git clone --depth 1 https://github.com/mstorsjo/fdk-aac && \
+cd fdk-aac && \
+autoreconf -fiv && \
+./configure --prefix="$THIRD_PARTY_PATH/ffmpeg_build" --with-pic --disable-shared && \
+make -j && \
+make install && cd /root && \
+rm -rf fdk-aac && \
+
+cd /usr/include/linux && ln -s -f ../libvl1-videodev.h videodev.h && \
+git clone --single-branch https://github.com/FFmpeg/nv-codec-headers.git && \
+cd nv-codec-headers && make && make install && cd .. && rm -rf nv-codec-headers && \
+cp -rf $THIRD_PARTY_PATH/Video_Codec_SDK_11.1.5 /opt/Video_Codec_SDK && \
+
+# xavier의 경우 --nvccflags='-gencode arch=compute_72,code=sm_72 -O2'
+# Tesla T4 --nvccflags='-gencode arch=compute_75,code=sm_75 -O2'
+# Nvidia A10 --nvccflags='-gencode arch=compute_86,code=sm_86 -O2' \
+# Nvidia V100 --nvccflags='-gencode arch=compute_70,code=sm_70 -O2' \
+# Nvidia L4 --nvccflags='-gencode arch=compute_89,code=sm_89 -O2' \
+
+ffmpeg_version=4.2 && \
+cd $THIRD_PARTY_PATH && \
+mkdir -p ffmpeg && \
+cd /root && \
+mkdir -p ~/ffmpeg_sources && \
+cd ~/ffmpeg_sources && \
+wget -O ffmpeg-${ffmpeg_version}.tar.bz2 https://ffmpeg.org/releases/ffmpeg-${ffmpeg_version}.tar.bz2 && \
+tar xjvf ffmpeg-${ffmpeg_version}.tar.bz2 && \
+cd ffmpeg-${ffmpeg_version} && \
+PATH="$THIRD_PARTY_PATH/ffmpeg:$PATH" ./configure \
+  --prefix="$THIRD_PARTY_PATH/ffmpeg_build" \
+  --pkg-config-flags="--static" \
+  --extra-libs="-lpthread -lm" \
+  --ld="g++" \
+  --bindir="$THIRD_PARTY_PATH/ffmpeg" \
+	--disable-shared \
+  --enable-static \
+  --enable-gpl \
+  --enable-libfdk-aac \
+  --enable-libvpx \
+  --enable-libfreetype \
+  --enable-libmp3lame \
+  --enable-libopus \
+  --enable-libx264 \
+  --enable-libx265 \
+  --enable-cuda \
+  --enable-cuvid \
+  --extra-cflags='-I/usr/local/cuda/include -static' \
+  --extra-ldflags='-L/usr/local/cuda/lib64 -static' \
+  --enable-nonfree && \
+PATH="$THIRD_PARTY_PATH/ffmpeg:$PATH" make -j && \
+make install -j && \
+hash -r && \
+/bin/bash -c "source ~/.profile" && cd /root && \
+rm -rf ~/ffmpeg_sources && \
+
+PYTHON_VERSION="$(python3 -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')" && \
+PYTHON_LIB_PATH="$(python3 -c 'from distutils.sysconfig import get_config_var;print("{}/{}".format(get_config_var("LIBDIR"), get_config_var("INSTSONAME")))')" && \
+PYTHON_INCLUDE_PATH="$(python3 -c 'from sysconfig import get_paths as gp; print(gp()["include"])')" && \
+PYTHON_PACKEAGE_PATH="$(python3 -c 'import site; print(site.getsitepackages()[0])')" && \
+
+PYTHON_VERSION="$(python3 -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')" && \
+PYTHON_LIB_PATH="$(python3 -c 'from distutils.sysconfig import get_config_var;print("{}/{}".format(get_config_var("LIBDIR"), get_config_var("INSTSONAME")))')" && \
+PYTHON_INCLUDE_PATH="$(python3 -c 'from sysconfig import get_paths as gp; print(gp()["include"])')" && \
+PYTHON_PACKEAGE_PATH="$(python3 -c 'import site; print(site.getsitepackages()[0])')" && \
+CUDA_TOOLKIT_PATH=/usr/local/cuda && \
+
+cd /root && \
+opencv_version=4.9.0 && \
+wget -O opencv.zip https://github.com/opencv/opencv/archive/${opencv_version}.zip && \
+unzip opencv.zip && \
+wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/${opencv_version}.zip && \
+unzip opencv_contrib.zip && \
+cd opencv-${opencv_version} && mkdir build && cd build && \
+cmake -D CMAKE_BUILD_TYPE=RELEASE \
+  -D CMAKE_INSTALL_PREFIX=${THIRD_PARTY_PATH}/opencv \
+  -D WITH_MKL=ON \
+  -D WITH_IPP=OFF \
+  -D WITH_ITT=OFF \
+  -D WITH_1394=OFF \
+  -D WITH_TBB=ON \
+  -D BUILD_WITH_DEBUG_INFO=OFF \
+  -D BUILD_DOCS=OFF \
+  -D INSTALL_C_EXAMPLES=OFF \
+  -D INSTALL_PYTHON_EXAMPLES=OFF \
+  -D WITH_JPEG=ON \
+  -D WITH_WEBP=ON \
+  -D WITH_TIFF=OFF \
+  -D BUILD_PNG=ON \
+  -D BUILD_EXAMPLES=OFF \
+  -D BUILD_TESTS=OFF \
+  -D BUILD_PERF_TESTS=OFF \
+  -D WITH_QT=OFF \
+  -D WITH_GTK=OFF \
+  -D WITH_OPENGL=OFF \
+  -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-${opencv_version}/modules \
+  -D WITH_V4L=OFF \
+  -D WITH_FFMPEG=ON \
+  -D WITH_XINE=ON \
+  -D WITH_OPENEXR=OFF \
+  -D BUILD_opencv_python3=ON \
+  -D PYTHON3_LIBRARY=${PYTHON_LIB_PATH} \
+  -D PYTHON3_INCLUDE_DIR=${PYTHON_INCLUDE_PATH} \
+  -D PYTHON3_EXECUTABLE=`which python3` \
+  -D PYTHON3_PACKAGES_PATH=${PYTHON_PACKEAGE_PATH} \
+  -D BUILD_NEW_PYTHON_SUPPORT=ON \
+  -D OPENCV_GENERATE_PKGCONFIG=ON \
+  -D CMAKE_CXX_FLAGS='-D_GLIBCXX_USE_CXX11_ABI=0' \
+  -D CUDA_TOOLKIT_ROOT_DIR=${CUDA_TOOLKIT_PATH} \
+  -D ENABLE_FAST_MATH=1 \
+  -D CUDA_FAST_MATH=1 \
+  -D WITH_CUBLAS=ON \
+  -D WITH_CUDA=ON \
+  -D WITH_CUDNN=ON \
+  -D CUDA_CUDART_LIBRARY=${CUDA_TOOLKIT_PATH}/lib64/libcudart.so \
+  -D CUDA_USE_STATIC_CUDA_RUNTIME=OFF \
+  -D OPENCV_DNN_CUDA=ON \
+  -D WITH_NVCUVID=ON \
+  -D CUDA_ARCH_BIN=${CUDA_ARCH} \
+  -D CUDA_ARCH_PTX=${CUDA_ARCH} \
+  -D BUILD_SHARED_LIBS=OFF ../ && \
+make -j && \
+make install && \
+cd ../.. && \
+rm -f opencv.zip && \
+rm -f opencv_contrib.zip && \
+rm -rf opencv_contrib-${opencv_version} && \
+rm -rf opencv-${opencv_version} && \
+
+cp -rf ${PYTHON_PACKEAGE_PATH}/cv2 $THIRD_PARTY_PATH/opencv/cv2 && \
+
+cd /root/xaiva-media && \
+./lib_compile.sh && ./release_packaging.sh && \
+
+wget -P ~ https://github.com/cyrus-and/gdb-dashboard/raw/master/.gdbinit && \
+pip install pygments && \
+
+apt clean && \
+rm -rf /var/lib/apt/lists/* && \
+pip cache purge

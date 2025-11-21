@@ -1,0 +1,108 @@
+{
+  "metadata": {
+    "name": "ubuntu22.04-cuda11.8-torch2.1",
+    "description": "Production Environment - CUDA 11.8, PyTorch 2.1.0, TensorRT 8.6.1",
+    "created": "2025-11-20",
+    "target_gpu": "NVIDIA RTX 30xx series (Ampere, Arch 86)"
+  },
+  "base_image": "nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04",
+  "python": {
+    "version": "3.10",
+    "version_without_dot": "310"
+  },
+  "pytorch": {
+    "version": "2.1.0+cu118",
+    "torch_version": "2.1.0+cu118",
+    "torchvision_version": "0.16.0+cu118",
+    "torchaudio_version": "2.1.0+cu118",
+    "index_url": "https://download.pytorch.org/whl/torch_stable.html"
+  },
+  "tensorrt": {
+    "enabled": true,
+    "version": "8.6.1",
+    "required_in_runtime": true,
+    "supported_versions": ["8.6.1", "10.x"],
+    "cuda_compatibility": {
+      "8.6.1": "11.8",
+      "10.x": "12.x"
+    },
+    "description": "TensorRT is required in runtime for inference acceleration. Version 8.x supports CUDA 11.8, Version 10.x supports CUDA 12.x"
+  },
+  "cuda": {
+    "version": "11.8",
+    "arch": "86",
+    "arch_name": "ampere"
+  },
+  "build_options": {
+    "ffmpeg_version": "4.2",
+    "opencv_version": "4.11.0",
+    "build_ffmpeg_from_source": true,
+    "build_opencv_from_source": true,
+    "opencv_cuda_enabled": true,
+    "xaiva_media_source": {
+      "type": "external",
+      "path": "xaiva-media",
+      "branch": "master",
+      "description": "Xaiva Media source path relative to build context or absolute path"
+    }
+  },
+  "system_packages": [
+    "autoconf",
+    "automake",
+    "build-essential",
+    "curl",
+    "git-core",
+    "git-lfs",
+    "libass-dev",
+    "libfreetype6-dev",
+    "libgnutls28-dev",
+    "libmp3lame-dev",
+    "libsdl2-dev",
+    "libtool",
+    "libva-dev",
+    "libvdpau-dev",
+    "libvorbis-dev",
+    "libxcb1-dev",
+    "libxcb-shm0-dev",
+    "libxcb-xfixes0-dev",
+    "meson",
+    "ninja-build",
+    "pkg-config",
+    "texinfo",
+    "wget",
+    "yasm",
+    "zlib1g-dev",
+    "libssl-dev",
+    "openssl",
+    "unzip",
+    "vim",
+    "gdb",
+    "nasm",
+    "lftp",
+    "libnuma-dev",
+    "jq",
+    "tzdata",
+    "ntp",
+    "libtbb-dev",
+    "libatlas-base-dev",
+    "gfortran",
+    "libeigen3-dev",
+    "libv4l-dev",
+    "v4l-utils",
+    "libjpeg-dev",
+    "libtiff5-dev",
+    "libpng-dev",
+    "libwebp-dev",
+    "libopenjp2.7-dev",
+    "cmake",
+    "redis-server"
+  ],
+  "environment": {
+    "TZ": "Asia/Seoul",
+    "LC_ALL": "C.UTF-8",
+    "LD_LIBRARY_PATH": "/usr/local/lib:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64",
+    "NVIDIA_VISIBLE_DEVICES": "all",
+    "NVIDIA_DRIVER_CAPABILITIES": "video,compute,utility"
+  }
+}
+
