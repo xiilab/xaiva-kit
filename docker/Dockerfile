@@ -178,20 +178,6 @@ RUN if [ -n "${PYTORCH_VERSION}" ]; then \
     fi
 
 # -----------------------------------------------------------------------------
-# Python 패키지 설치 - TensorRT (하이브리드 빌드 지원)
-# -----------------------------------------------------------------------------
-ARG TENSORRT_VERSION
-RUN if [ -n "${TENSORRT_VERSION}" ]; then \
-        if [ "$BUILD_MODE" = "offline" ] && [ -d "/tmp/wheels" ] && [ "$(ls -A /tmp/wheels 2>/dev/null)" ]; then \
-            echo "=== Offline mode: Installing TensorRT from local wheels ==="; \
-            pip3 install --no-index --find-links=/tmp/wheels tensorrt==${TENSORRT_VERSION}; \
-        else \
-            echo "=== Online mode: Downloading TensorRT ==="; \
-            pip3 install tensorrt==${TENSORRT_VERSION}; \
-        fi; \
-    fi
-
-# -----------------------------------------------------------------------------
 # Python 패키지 설치 - 일반 패키지 (하이브리드 빌드 지원)
 # -----------------------------------------------------------------------------
 COPY artifacts/${PRESET_NAME}/requirements-base.txt /tmp/requirements-base.txt
@@ -321,6 +307,20 @@ RUN if [ "$BUILD_MODE" = "offline" ] && [ -d "/tmp/wheels" ] && [ "$(ls -A /tmp/
     fi && \
     pip3 cache purge && \
     rm -rf /tmp/requirements.txt
+
+# -----------------------------------------------------------------------------
+# Python 패키지 설치 - TensorRT (하이브리드 빌드 지원)
+# -----------------------------------------------------------------------------
+    ARG TENSORRT_VERSION
+    RUN if [ -n "${TENSORRT_VERSION}" ]; then \
+            if [ "$BUILD_MODE" = "offline" ] && [ -d "/tmp/wheels" ] && [ "$(ls -A /tmp/wheels 2>/dev/null)" ]; then \
+                echo "=== Offline mode: Installing TensorRT from local wheels ==="; \
+                pip3 install --no-index --find-links=/tmp/wheels tensorrt==${TENSORRT_VERSION}; \
+            else \
+                echo "=== Online mode: Downloading TensorRT ==="; \
+                pip3 install tensorrt==${TENSORRT_VERSION}; \
+            fi; \
+        fi
 
 # 환경 변수 설정 (개발/런타임 통합)
 # /usr/local/bin 과 /usr/local/lib 는 시스템 기본 PATH에 포함됨
