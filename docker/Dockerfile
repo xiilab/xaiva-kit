@@ -157,8 +157,8 @@ RUN pip3 install --upgrade pip setuptools wheel
 
 # -----------------------------------------------------------------------------
 # Wheels 복사 (오프라인 모드용) - 실패해도 계속 진행
-# -----------------------------------------------------------------------------
-COPY artifacts/${PRESET_NAME}/wheels/ /tmp/wheels/ 2>/dev/null || true
+# 오프라인 모드 현재 사용 안함 (2025-11-21) -----------------------------------------------------------------------------
+# COPY artifacts/${PRESET_NAME}/wheels/ /tmp/wheels/ 2>/dev/null || true
 
 # -----------------------------------------------------------------------------
 # Python 패키지 설치 - PyTorch (하이브리드 빌드 지원)
@@ -172,8 +172,8 @@ RUN if [ -n "${PYTORCH_VERSION}" ]; then \
             pip3 install --no-index --find-links=/tmp/wheels torch==${PYTORCH_VERSION} torchvision torchaudio; \
         else \
             echo "=== Online mode: Downloading PyTorch packages ==="; \
-            pip3 install torch==${PYTORCH_VERSION} torchvision torchaudio \
-            --index-url ${PYTORCH_INDEX_URL}; \
+            pip3 install --find-links ${PYTORCH_INDEX_URL} \
+            torch==${PYTORCH_VERSION} torchvision torchaudio ;\
         fi; \
     fi
 

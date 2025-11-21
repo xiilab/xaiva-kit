@@ -94,12 +94,26 @@ docker run --rm -it --gpus all \
 
 ### 새 프리셋 추가
 
-1. `presets/` 디렉터리에 새 JSON 파일 생성
-2. `artifacts/<preset-name>/` 디렉터리 생성
-3. `artifacts/<preset-name>/requirements.txt` 작성
-4. 필요한 의존성 다운로드
+프리셋 템플릿을 사용하여 쉽게 생성할 수 있습니다:
 
-자세한 내용은 [개발 가이드](docs/build-guide.md)를 참조하세요.
+```bash
+# 1. 템플릿 가이드 확인
+cat presets/template/README.md
+
+# 2. 템플릿 복사
+cp presets/template/preset-template.json presets/<preset-name>.json
+mkdir -p artifacts/<preset-name>
+cp presets/template/requirements-base-template.txt artifacts/<preset-name>/requirements-base.txt
+cp presets/template/requirements-template.txt artifacts/<preset-name>/requirements.txt
+
+# 3. 파일 편집 후 빌드
+vim presets/<preset-name>.json
+python3 scripts/build.py --preset <preset-name>
+```
+
+📖 **상세 가이드**: 
+- [presets/template/README.md](presets/template/README.md) - 템플릿 사용법
+- [docs/preset-schema.md](docs/preset-schema.md) - 프리셋 스키마
 
 ## 🔧 의존성 관리
 

@@ -282,28 +282,51 @@ APT 시스템 패키지 목록
 
 ## 프리셋 생성 가이드
 
-### 🚀 간편한 방법: 프리셋 생성기 사용
+### 🚀 권장 방법: 템플릿 사용
 
-**추천 방법**: 대화형 프리셋 생성기를 사용하세요.
+새 프리셋 생성을 위한 템플릿이 준비되어 있습니다.
+
+**템플릿 위치**: `presets/template/`
+- `preset-template.json` - 프리셋 설정 템플릿
+- `requirements-base-template.txt` - 기본 Python 패키지 템플릿
+- `requirements-template.txt` - 런타임 Python 패키지 템플릿
+- `README.md` - 상세 사용 가이드
+
+**빠른 시작**:
 
 ```bash
-# 새 프리셋 생성 (대화형)
-python3 scripts/preset-generator.py
+# 1. 템플릿 README 확인
+cat presets/template/README.md
 
-# 기존 프리셋 목록 확인
-python3 scripts/preset-generator.py --list
+# 2. 프리셋 JSON 생성
+cp presets/template/preset-template.json presets/<preset-name>.json
+
+# 3. Requirements 파일 생성
+mkdir -p artifacts/<preset-name>
+cp presets/template/requirements-base-template.txt \
+   artifacts/<preset-name>/requirements-base.txt
+cp presets/template/requirements-template.txt \
+   artifacts/<preset-name>/requirements.txt
+
+# 4. 파일 편집 후 빌드
+vim presets/<preset-name>.json
+vim artifacts/<preset-name>/requirements-base.txt
+vim artifacts/<preset-name>/requirements.txt
+python3 scripts/build.py --preset <preset-name>
 ```
 
-프리셋 생성기는:
-- ✅ 실제 사용되는 필드만 포함
-- ✅ 미리 정의된 템플릿 제공 (CUDA 11.8, 12.1)
-- ✅ artifacts 디렉터리 자동 생성
-- ✅ requirements-base.txt 자동 생성
-- ✅ JSON 문법 오류 방지
+📖 **상세 가이드는 [presets/template/README.md](../presets/template/README.md)를 참조하세요.**
 
-### 🛠️ 수동 방법: 기존 프리셋 복사
+템플릿에는 다음 정보가 포함되어 있습니다:
+- CUDA/PyTorch 버전별 설정 예시
+- GPU 아키텍처 코드 테이블
+- 버전 호환성 매트릭스
+- 단계별 프리셋 생성 가이드
+- 체크리스트 및 주의사항
 
-고급 사용자용 수동 생성 방법:
+### 🛠️ 대안: 기존 프리셋 복사
+
+기존 프리셋을 기반으로 생성:
 
 1. **기존 프리셋 복사**
    ```bash
@@ -311,8 +334,8 @@ python3 scripts/preset-generator.py --list
       presets/ubuntu22.04-cuda12.1-torch2.3.json
    ```
 
-2. **필수 필드만 수정** (나머지는 제거 가능)
-   - `metadata.name`: 파일명과 일치시키기
+2. **필수 필드만 수정**
+   - `metadata.name`: 새 프리셋 이름 (파일명과 일치)
    - `base_image`: CUDA 버전에 맞는 이미지
    - `pytorch.torch_version`: PyTorch 버전 및 CUDA 접미사 변경
    - `tensorrt.version`: CUDA 호환 버전 선택
@@ -323,10 +346,12 @@ python3 scripts/preset-generator.py --list
    mkdir -p artifacts/ubuntu22.04-cuda12.1-torch2.3/{wheels,debs,sources}
    ```
 
-4. **requirements-base.txt 작성**
+4. **requirements 파일 복사 및 수정**
    ```bash
    cp artifacts/ubuntu22.04-cuda11.8-torch2.1/requirements-base.txt \
       artifacts/ubuntu22.04-cuda12.1-torch2.3/requirements-base.txt
+   cp artifacts/ubuntu22.04-cuda11.8-torch2.1/requirements.txt \
+      artifacts/ubuntu22.04-cuda12.1-torch2.3/requirements.txt
    ```
 
 ### 2. 검증 체크리스트

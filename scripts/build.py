@@ -51,26 +51,17 @@ ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
 
 def detect_build_mode(preset_name: str) -> str:
     """
-    artifacts 존재 여부로 빌드 모드 자동 감지
+    빌드 모드 반환 (현재는 온라인 모드만 지원)
     
     Args:
         preset_name: 프리셋 이름
     
     Returns:
-        'offline' if sufficient artifacts found, 'online' otherwise
+        항상 'online' 반환
+    
+    Note:
+        오프라인 빌드는 deps_sync.sh 작업 완료 후 지원 예정
     """
-    wheels_dir = ARTIFACTS_DIR / preset_name / "wheels"
-    
-    if not wheels_dir.exists():
-        return "online"
-    
-    # .whl 파일 개수 확인
-    wheel_files = list(wheels_dir.glob("*.whl"))
-    
-    # 최소 10개 이상의 wheel 파일이 있어야 오프라인 모드로 간주
-    if len(wheel_files) >= 10:
-        return "offline"
-    
     return "online"
 
 
@@ -83,31 +74,10 @@ def print_build_mode_info(build_mode: str, preset_name: str):
         preset_name: 프리셋 이름
     """
     print_section("Build Mode")
-    
-    if build_mode == "offline":
-        wheels_dir = ARTIFACTS_DIR / preset_name / "wheels"
-        sources_dir = ARTIFACTS_DIR / preset_name / "sources"
-        
-        wheel_count = len(list(wheels_dir.glob("*.whl"))) if wheels_dir.exists() else 0
-        source_count = len(list(sources_dir.glob("*"))) if sources_dir.exists() else 0
-        
-        print("🔒 Offline Mode")
-        print(f"  Using local artifacts from: artifacts/{preset_name}/")
-        print(f"  Python wheels: {wheel_count} files")
-        print(f"  Source files: {source_count} files")
-        print("  ✅ No internet connection required for build")
-    else:
-        print("🌐 Online Mode")
-        print("  Downloading packages directly from internet")
-        print("  ⚠️  Internet connection required for build")
-        
-        # artifacts 상태 표시
-        wheels_dir = ARTIFACTS_DIR / preset_name / "wheels"
-        if wheels_dir.exists():
-            wheel_count = len(list(wheels_dir.glob("*.whl")))
-            if wheel_count > 0:
-                print(f"  📦 Found {wheel_count} local wheels (insufficient for offline mode)")
-    
+    print("🌐 Online Mode")
+    print("  Downloading packages directly from internet")
+    print("  ⚠️  Internet connection required for build")
+    print("  ℹ️  Offline mode will be available after deps_sync.sh implementation")
     print("")
 
 
@@ -354,8 +324,8 @@ Examples:
         "--build-mode",
         type=str,
         choices=["online", "offline", "auto"],
-        default="auto",
-        help="Build mode: online (internet required), offline (use local artifacts), auto (detect)"
+        default="online",
+        help="Build mode (currently only 'online' is supported, offline mode coming soon)"
     )
     
     parser.add_argument(
@@ -438,10 +408,10 @@ Examples:
     
     
     # 빌드 모드 결정
-    build_mode = args.build_mode
-    if build_mode == "auto":
-        build_mode = detect_build_mode(preset_name)
-        print_success(f"Auto-detected build mode: {build_mode}")
+    # 현재는 온라인 모드만 지원
+    build_mode = "online"
+    if args.build_mode in ["offline", "auto"]:
+        print_warning(f"Build mode '{args.build_mode}' is not yet supported, using 'online' mode")
     
     # 빌드 모드 정보 출력
     if not args.non_interactive:
