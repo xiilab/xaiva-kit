@@ -21,7 +21,7 @@ cd .. && \
 rm -rf cmake-3.17.3 && \
 rm -f cmake-3.17.3.tar.gz && \
 cd /root && \
-GITHUB_KEY="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" && \
+GITHUB_KEY="**secrets**" && \
 git clone https://${GITHUB_KEY}@github.com/xiilab/xaiva-media.git && \
 
 cd /root && \
