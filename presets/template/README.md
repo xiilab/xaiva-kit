@@ -7,6 +7,7 @@
 - `preset-template.json` - 프리셋 설정 템플릿
 - `requirements-base-template.txt` - 기본 Python 패키지 템플릿
 - `requirements-template.txt` - 런타임 Python 패키지 템플릿
+- `requirements-extra-template.txt` - 추가 패키지 템플릿 (선택적)
 - `README.md` - 이 파일 (사용 가이드)
 
 ## 🚀 새 프리셋 생성 방법
@@ -85,12 +86,35 @@ cp presets/template/requirements-base-template.txt \
 cp presets/template/requirements-template.txt \
    artifacts/<preset-name>/requirements.txt
 
+# 3. requirements-extra.txt 생성 (선택적)
+# 추가 패키지가 필요한 경우에만 생성
+cp presets/template/requirements-extra-template.txt \
+   artifacts/<preset-name>/requirements-extra.txt
+
 # 예시:
 cp presets/template/requirements-base-template.txt \
    artifacts/ubuntu22.04-cuda12.1-torch2.2/requirements-base.txt
 cp presets/template/requirements-template.txt \
    artifacts/ubuntu22.04-cuda12.1-torch2.2/requirements.txt
+cp presets/template/requirements-extra-template.txt \
+   artifacts/ubuntu22.04-cuda12.1-torch2.2/requirements-extra.txt
 ```
+
+#### Requirements 파일 역할 구분
+
+- **requirements-base.txt**: 핵심 의존성 패키지
+  - 빌드 초기에 설치
+  - NumPy, SciPy, Matplotlib, scikit-learn 등
+  
+- **requirements.txt**: 런타임 필수 패키지
+  - 빌드 중간에 설치
+  - PyTorch, TorchVision, 애플리케이션 의존성 등
+  
+- **requirements-extra.txt**: 추가 선택적 패키지 (선택적)
+  - 빌드 마지막에 설치
+  - ONNX, TensorRT 유틸리티, 디버깅 도구, 프로파일링 도구 등
+  - 파일이 존재하면 자동으로 설치 시도
+  - 설치 실패해도 빌드는 계속 진행
 
 ### Step 5: Requirements 파일 커스터마이징
 
@@ -137,6 +161,39 @@ scipy==1.12.0
 # fastapi
 # uvicorn
 ```
+
+#### requirements-extra.txt 수정 (선택적)
+
+```bash
+vim artifacts/<preset-name>/requirements-extra.txt
+```
+
+**사용 예시**:
+
+```txt
+# ONNX 지원 (모델 변환 등)
+onnx==1.18.0
+onnxruntime==1.22.0
+protobuf==6.31.1
+flatbuffers==25.2.10
+
+# 시스템 모니터링 및 디버깅
+psutil==7.0.0
+coloredlogs==15.0.1
+humanfriendly==10.0
+
+# 모델 프로파일링
+thop==0.1.1.post2209072238
+
+# TensorBoard 확장
+# tensorboard-plugin-profile
+
+# 기타 디버깅 도구
+# py-spy
+# memory-profiler
+```
+
+**참고**: 이 파일의 패키지들은 설치 실패 시에도 빌드가 계속 진행됩니다.
 
 ### Step 6: 의존성 다운로드 (선택사항, 오프라인 빌드용)
 
@@ -313,9 +370,10 @@ torchaudio==2.3.0+cu124
 
 ### 2. 중복 방지
 
-- ❌ **requirements-base.txt와 requirements.txt에 동일 패키지 중복 정의 금지**
+- ❌ **requirements-base.txt, requirements.txt, requirements-extra.txt에 동일 패키지 중복 정의 금지**
 - ✅ **PyTorch는 requirements.txt에만 정의**
 - ✅ **기본 패키지는 requirements-base.txt에만 정의**
+- ✅ **선택적/추가 패키지는 requirements-extra.txt에만 정의**
 
 ### 3. 오프라인 빌드
 
@@ -340,6 +398,8 @@ torchaudio==2.3.0+cu124
 - [ ] `artifacts/<preset-name>/` 디렉터리 생성
 - [ ] `requirements-base.txt` 생성 및 커스터마이징
 - [ ] `requirements.txt` 생성 및 커스터마이징
+- [ ] `requirements-extra.txt` 생성 및 커스터마이징 (필요 시)
+- [ ] 세 파일 간 패키지 중복 없음 확인
 - [ ] PyTorch 버전과 CUDA 버전 일치 확인
 - [ ] NumPy 버전과 PyTorch 호환성 확인
 - [ ] TensorRT 버전과 CUDA 호환성 확인
@@ -415,7 +475,8 @@ echo "Next steps:"
 echo "  1. Edit presets/${PRESET_NAME}.json"
 echo "  2. Edit artifacts/${PRESET_NAME}/requirements-base.txt"
 echo "  3. Edit artifacts/${PRESET_NAME}/requirements.txt"
-echo "  4. Run: python3 scripts/build.py --preset ${PRESET_NAME} --dry-run"
+echo "  4. (Optional) Create artifacts/${PRESET_NAME}/requirements-extra.txt for additional packages"
+echo "  5. Run: python3 scripts/build.py --preset ${PRESET_NAME} --dry-run"
 ```
 
 **사용 방법**:

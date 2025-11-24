@@ -311,16 +311,36 @@ RUN if [ "$BUILD_MODE" = "offline" ] && [ -d "/tmp/wheels" ] && [ "$(ls -A /tmp/
 # -----------------------------------------------------------------------------
 # Python 패키지 설치 - TensorRT (하이브리드 빌드 지원)
 # -----------------------------------------------------------------------------
-    ARG TENSORRT_VERSION
-    RUN if [ -n "${TENSORRT_VERSION}" ]; then \
-            if [ "$BUILD_MODE" = "offline" ] && [ -d "/tmp/wheels" ] && [ "$(ls -A /tmp/wheels 2>/dev/null)" ]; then \
-                echo "=== Offline mode: Installing TensorRT from local wheels ==="; \
-                pip3 install --no-index --find-links=/tmp/wheels tensorrt==${TENSORRT_VERSION}; \
-            else \
-                echo "=== Online mode: Downloading TensorRT ==="; \
-                pip3 install tensorrt==${TENSORRT_VERSION}; \
-            fi; \
-        fi
+ARG TENSORRT_VERSION
+RUN if [ -n "${TENSORRT_VERSION}" ]; then \
+        if [ "$BUILD_MODE" = "offline" ] && [ -d "/tmp/wheels" ] && [ "$(ls -A /tmp/wheels 2>/dev/null)" ]; then \
+            echo "=== Offline mode: Installing TensorRT from local wheels ==="; \
+            pip3 install --no-index --find-links=/tmp/wheels tensorrt==${TENSORRT_VERSION}; \
+        else \
+            echo "=== Online mode: Downloading TensorRT ==="; \
+            pip3 install tensorrt==${TENSORRT_VERSION}; \
+        fi; \
+    fi
+
+# -----------------------------------------------------------------------------
+# Python 패키지 설치 - Extra packages (선택적)
+# -----------------------------------------------------------------------------
+COPY artifacts/${PRESET_NAME}/requirements-extra.txt /tmp/requirements-extra.txt
+RUN if [ -f /tmp/requirements-extra.txt ] && [ -s /tmp/requirements-extra.txt ] && grep -qvE "^#|^$" /tmp/requirements-extra.txt; then \
+        echo "=== Installing extra packages ==="; \
+        if [ "$BUILD_MODE" = "offline" ] && [ -d "/tmp/wheels" ] && [ "$(ls -A /tmp/wheels 2>/dev/null)" ]; then \
+            echo "=== Offline mode: Installing extra packages from local wheels ==="; \
+            grep -vE "^#|^$" /tmp/requirements-extra.txt > /tmp/filtered-extra.txt; \
+            pip3 install --no-index --find-links=/tmp/wheels -r /tmp/filtered-extra.txt || true; \
+            rm /tmp/filtered-extra.txt; \
+        else \
+            echo "=== Online mode: Installing extra packages ==="; \
+            pip3 install -r /tmp/requirements-extra.txt || true; \
+        fi; \
+    else \
+        echo "=== No extra packages to install ==="; \
+    fi && \
+    rm -rf /tmp/requirements-extra.txt
 
 # 환경 변수 설정 (개발/런타임 통합)
 # /usr/local/bin 과 /usr/local/lib 는 시스템 기본 PATH에 포함됨

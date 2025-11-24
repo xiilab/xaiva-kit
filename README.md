@@ -21,7 +21,9 @@ xaiva-kit/
 │       ├── wheels/                     # Python wheel 파일
 │       ├── debs/                       # APT .deb 패키지 (선택)
 │       ├── sources/                    # 소스 코드 아카이브
-│       └── requirements.txt            # Python 패키지 목록
+│       ├── requirements-base.txt       # 핵심 Python 패키지 목록
+│       ├── requirements.txt            # 런타임 Python 패키지 목록
+│       └── requirements-extra.txt      # 추가 패키지 목록 (선택적)
 ├── docker/
 │   └── Dockerfile                      # 통합 Multi-stage Dockerfile ✅
 ├── docs/                               # 상세 문서
@@ -127,6 +129,12 @@ python3 scripts/build.py --preset <preset-name>
 **일반 패키지 (requirements.txt):**
 - 패키지 목록: `artifacts/<preset-name>/requirements.txt`
 - Docker 빌드 시 자동 설치
+
+**추가 패키지 (requirements-extra.txt) - 선택적:**
+- 패키지 목록: `artifacts/<preset-name>/requirements-extra.txt`
+- 파일이 존재하면 빌드 마지막 단계에서 자동 설치
+- 예: ONNX, TensorRT 관련 유틸리티, 디버깅 도구 등
+- 설치 실패 시에도 빌드는 계속 진행
 
 **중요: TensorRT는 이미지에 필수 포함됩니다.**
 - TensorRT 8.x: CUDA 11.8 호환

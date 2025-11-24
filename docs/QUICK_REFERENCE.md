@@ -73,6 +73,8 @@ docker inspect xaiva-kit:ubuntu22.04-cuda11.8-torch2.1-runtime
 - [ ] GPU 인식 확인: `nvidia-smi`
 - [ ] 디스크 공간 확인: `df -h` (최소 20GB)
 - [ ] 인터넷 연결 확인 (Python 패키지 다운로드용)
+- [ ] 프리셋 디렉터리 확인: `ls artifacts/<preset-name>/`
+- [ ] requirements 파일 확인: `requirements-base.txt`, `requirements.txt`, `requirements-extra.txt` (선택)
 
 ### 빌드 후 체크리스트
 
@@ -180,7 +182,9 @@ docker build --no-cache ...
 artifacts/<preset-name>/     # 프리셋별 아티팩트
   ├── wheels/                # Python wheels (현재 미사용)
   ├── sources/               # 소스 아카이브
-  └── requirements.txt       # Python 패키지 목록
+  ├── requirements-base.txt  # 핵심 Python 패키지
+  ├── requirements.txt       # 런타임 Python 패키지
+  └── requirements-extra.txt # 추가 Python 패키지 (선택적)
 
 presets/<preset-name>.json   # 프리셋 정의
 docker/Dockerfile            # Multi-stage Dockerfile

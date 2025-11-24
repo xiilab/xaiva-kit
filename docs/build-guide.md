@@ -113,6 +113,21 @@ python3 scripts/build.py --list-presets
 **변경 사항**: Python wheels 다운로드는 더 이상 필요하지 않습니다.
 버전 관리 패키지(numpy, pytorch, tensorrt)는 Dockerfile에서 직접 설치됩니다.
 
+#### Python 패키지 구조
+
+각 프리셋은 다음 Python 패키지 파일들을 가질 수 있습니다:
+
+- **`requirements-base.txt`**: 핵심 의존성 (빌드 초기에 설치)
+  - 예: numpy, scipy, matplotlib, scikit-learn 등
+  
+- **`requirements.txt`**: 런타임 패키지 (빌드 중간에 설치)
+  - 예: 애플리케이션 실행에 필요한 패키지들
+  
+- **`requirements-extra.txt`**: 추가 패키지 (빌드 마지막에 선택적 설치)
+  - 예: ONNX, 디버깅 도구, 프로파일링 유틸리티
+  - 파일이 존재하면 자동으로 설치 시도
+  - 설치 실패해도 빌드는 계속 진행
+
 ### 5단계: 소스 파일 추가 (선택 사항)
 
 FFmpeg/OpenCV를 소스에서 빌드하려는 경우:
@@ -182,10 +197,12 @@ ls -lh artifacts/ubuntu22.04-cuda11.8-torch2.1/
 
 출력 예:
 ```
-drwxr-xr-x  wheels/           # Python wheel 파일들
-drwxr-xr-x  debs/             # (선택) .deb 패키지
-drwxr-xr-x  sources/          # (선택) 소스 파일
--rw-r--r--  requirements.txt  # Python 패키지 목록
+drwxr-xr-x  wheels/                   # Python wheel 파일들
+drwxr-xr-x  debs/                     # (선택) .deb 패키지
+drwxr-xr-x  sources/                  # (선택) 소스 파일
+-rw-r--r--  requirements-base.txt     # 핵심 Python 패키지
+-rw-r--r--  requirements.txt          # 런타임 Python 패키지
+-rw-r--r--  requirements-extra.txt    # (선택) 추가 Python 패키지
 ```
 
 ### 3단계: 대화형 빌드
