@@ -1,0 +1,32 @@
+{
+  "metadata": {
+    "name": "ubuntu22.04-cuda11.8-torch2.7.1",
+    "description": "EX-PRJ ENV - V100 - CUDA 11.8, PyTorch 2.7.1, TensorRT 8.6.1"
+  },
+  "base_image": "nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04",
+  "python": {
+    "version": "3.10",
+    "version_without_dot": "310"
+  },
+  "pytorch": {
+    "torch_version": "2.7.1",
+    "torchvision_version": "0.22.1",
+    "torchaudio_version": "2.7.1",
+    "index_url": "https://download.pytorch.org/whl/cu118"
+  },
+  "tensorrt": {
+    "version": "8.6.1.post1"
+  },
+  "cuda": {
+    "arch": "70"
+  },
+  "build_options": {
+    "ffmpeg_version": "4.2",
+    "opencv_version": "4.11.0",
+    "xaiva_media_source": {
+      "path": "xaiva-media",
+      "branch": "feature/standardize-cuda11-pytorch21"
+    }
+  }
+}
+
