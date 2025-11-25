@@ -122,9 +122,15 @@ python3 scripts/build.py --preset <preset-name>
 ### Python 패키지
 
 **버전 관리 패키지 (Dockerfile에서 직접 설치):**
-- numpy, scipy
-- torch, torchvision, torchaudio
-- tensorrt
+- numpy, scipy (requirements.txt에도 포함)
+- **torch, torchvision, torchaudio** (프리셋 JSON에서 버전 관리)
+- tensorrt (프리셋 JSON에서 버전 관리)
+
+**PyTorch 설치 방식 (공식 문서):**
+- 프리셋 JSON의 `pytorch` 섹션에서 개별 버전 지정
+- 버전에서 CUDA 접미사 제거 (예: `2.1.0`, `+cu118` 제거)
+- Dockerfile에서 `--index-url` 방식으로 설치 (공식 문서 권장)
+- requirements.txt에는 포함하지 않음
 
 **일반 패키지 (requirements.txt):**
 - 패키지 목록: `artifacts/<preset-name>/requirements.txt`

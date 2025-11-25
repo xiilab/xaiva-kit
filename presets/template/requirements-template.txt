@@ -7,12 +7,12 @@
 #
 # 사용법:
 #   1. 이 파일을 복사: artifacts/<preset-name>/requirements.txt
-#   2. PyTorch, TensorRT 버전을 프리셋에 맞게 수정
-#   3. 런타임 전용 패키지 추가
+#   2. 런타임 전용 패키지 추가
 #
 # 주의사항:
+#   - PyTorch, TensorRT는 Dockerfile에서 직접 설치됨 (프리셋 JSON 참조)
 #   - requirements-base.txt의 패키지는 이미 설치되어 있음
-#   - 중복 정의 금지 (numpy, scipy 등)
+#   - 중복 정의 금지 (numpy, scipy, torch 등)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -20,22 +20,6 @@
 # -----------------------------------------------------------------------------
 numpy==1.23.1
 scipy==1.11.4
-
-# -----------------------------------------------------------------------------
-# PyTorch ecosystem (CUDA version specific)
-# -----------------------------------------------------------------------------
-# 중요: CUDA 버전에 맞는 PyTorch 인덱스 URL 사용
---find-links https://download.pytorch.org/whl/torch_stable.html
-
-# PyTorch 2.1.0 + CUDA 11.8 예시:
-torch==2.1.0+cu118
-torchvision==0.16.0+cu118
-torchaudio==2.1.0+cu118
-
-# PyTorch 2.2.0 + CUDA 12.1 예시:
-# torch==2.2.0+cu121
-# torchvision==0.17.0+cu121
-# torchaudio==2.2.0+cu121
 
 # -----------------------------------------------------------------------------
 # Data processing and utilities (from base)

@@ -1,5 +1,50 @@
 # Changelog
 
+## [2025-11-25] - PyTorch 설치 방식 개선 (공식 문서)
+
+### 변경됨 (Changed)
+- **PyTorch 설치 방식**: `--find-links` → `--index-url` (공식 문서 권장 방식)
+  - 기존: `--find-links https://download.pytorch.org/whl/torch_stable.html`
+  - 변경: `--index-url https://download.pytorch.org/whl/cu118`
+  - CUDA 버전별 명확한 인덱스 URL 사용
+  
+- **버전 형식 단순화**: CUDA 접미사 제거
+  - 기존: `"torch_version": "2.1.0+cu118"`
+  - 변경: `"torch_version": "2.1.0"`
+  - CUDA 버전은 `index_url`에서 관리
+  
+- **프리셋 JSON 스키마 확장**: 
+  - `pytorch.torch_version`: torch 버전 (CUDA 접미사 없음)
+  - `pytorch.torchvision_version`: torchvision 버전 (신규)
+  - `pytorch.torchaudio_version`: torchaudio 버전 (신규)
+  - `pytorch.index_url`: CUDA 버전별 인덱스 URL
+  
+- **Requirements 파일 단순화**:
+  - `requirements-template.txt`에서 PyTorch 관련 내용 제거
+  - PyTorch는 Dockerfile에서만 설치 (프리셋 JSON 기반)
+  - requirements.txt는 일반 패키지만 관리
+
+### 업데이트된 파일
+- docker/Dockerfile: PyTorch 설치 로직 개선
+- scripts/builder/docker.py: 새로운 build args 추가
+- presets/ubuntu22.04-cuda11.8-torch2.1.json: 버전 필드 추가
+- artifacts/ubuntu22.04-cuda11.8-torch2.1/requirements.txt: PyTorch 제거
+- presets/template/requirements-template.txt: PyTorch 섹션 제거
+- presets/template/preset-template.json: 버전 필드 추가
+- docs/preset-schema.md: PyTorch 섹션 업데이트
+- docs/online-build-migration.md: 공식 방식 반영
+- presets/template/README.md: 예시 업데이트
+- README.md: 의존성 관리 섹션 업데이트
+
+### 장점
+- ✅ PyTorch 공식 문서 권장 방식 사용 (`--index-url`)
+- ✅ 버전 형식 단순화 (CUDA 접미사 제거)
+- ✅ 각 패키지 버전을 프리셋 JSON에서 명확히 관리
+- ✅ requirements.txt 간소화 및 역할 명확화
+- ✅ CUDA 버전은 index_url에서 중앙 관리
+
+---
+
 ## [2025-11-21] - 프로젝트 이름 변경
 
 ### 변경됨 (Changed)

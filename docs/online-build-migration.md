@@ -25,17 +25,20 @@ RUN pip3 install --no-index --find-links=/tmp/wheels torch==2.1.0+cu118
 - ❌ 큰 파일 크기 (PyTorch wheel ~800MB)
 - ❌ 관리 복잡도 증가
 
-#### After (온라인 방식 - Legacy 참조)
+#### After (온라인 방식 - 공식 문서)
 
 ```dockerfile
-RUN pip3 install --find-links https://download.pytorch.org/whl/torch_stable.html torch==2.1.0+cu118 && \
-    pip3 install --find-links https://download.pytorch.org/whl/torch_stable.html torchvision==0.16.0+cu118 && \
-    pip3 install --find-links https://download.pytorch.org/whl/torch_stable.html torchaudio==2.1.0+cu118
+RUN pip3 install --index-url https://download.pytorch.org/whl/cu118 \
+    torch==2.1.0 \
+    torchvision==0.16.0 \
+    torchaudio==2.1.0
 ```
 
 **장점:**
 - ✅ wheels 다운로드 불필요
-- ✅ 항상 최신 버전 사용 가능
+- ✅ PyTorch 공식 문서 권장 방식 (`--index-url`)
+- ✅ 버전에서 CUDA 접미사 제거 (index_url에서 관리)
+- ✅ CUDA 버전별 명확한 인덱스 URL
 - ✅ 관리 간소화
 
 ### 2. 버전 관리 패키지 분리
@@ -64,6 +67,13 @@ webcolors
 #### requirements.txt (After)
 
 ```txt
+# Core dependencies (version-locked)
+numpy==1.23.1
+scipy==1.11.4
+
+# PyTorch는 Dockerfile에서 직접 설치됨 (프리셋 JSON 참조)
+# torch, torchvision, torchaudio는 여기에 포함하지 않음
+
 # Data processing and utilities
 packaging
 webcolors
@@ -72,8 +82,7 @@ yacs
 ...
 
 # Note: 버전 관리 패키지는 Dockerfile에서 직접 설치
-# - numpy, scipy
-# - torch, torchvision, torchaudio  
+# - torch, torchvision, torchaudio (프리셋 JSON에서 버전 관리)
 # - tensorrt
 ```
 
@@ -88,10 +97,11 @@ RUN echo "=== Installing Python packages ===" && \
     pip3 install numpy==1.23.1 && \
     pip3 install scipy==1.11.4 && \
     \
-    # 3. PyTorch ecosystem (버전 관리)
-    pip3 install --find-links https://download.pytorch.org/whl/torch_stable.html torch==2.1.0+cu118 && \
-    pip3 install --find-links https://download.pytorch.org/whl/torch_stable.html torchvision==0.16.0+cu118 && \
-    pip3 install --find-links https://download.pytorch.org/whl/torch_stable.html torchaudio==2.1.0+cu118 && \
+    # 3. PyTorch ecosystem (버전 관리 - 공식 문서)
+    pip3 install --index-url https://download.pytorch.org/whl/cu118 \
+        torch==2.1.0 \
+        torchvision==0.16.0 \
+        torchaudio==2.1.0 && \
     \
     # 4. TensorRT (버전 관리)
     pip3 install tensorrt==8.6.1 && \
@@ -135,8 +145,14 @@ pip cache purge
 ```
 
 **특징:**
-- ✅ `--find-links`로 PyTorch 설치
+- ✅ `--find-links`로 PyTorch 설치 (구버전 방식)
 - ✅ 버전 중요 패키지는 명시적 설치
+
+**현재 방식 (공식 문서):**
+- ✅ `--index-url`로 PyTorch 설치 (공식 권장 방식)
+- ✅ 버전에서 CUDA 접미사 제거 (예: `2.1.0`, `+cu118` 제거)
+- ✅ 프리셋 JSON에서 개별 버전 관리 (torch, torchvision, torchaudio)
+- ✅ CUDA 버전별 명확한 인덱스 URL
 - ✅ 일반 패키지는 한 줄에 설치
 
 ---

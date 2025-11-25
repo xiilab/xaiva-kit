@@ -161,19 +161,30 @@ RUN pip3 install --upgrade pip setuptools wheel
 # COPY artifacts/${PRESET_NAME}/wheels/ /tmp/wheels/ 2>/dev/null || true
 
 # -----------------------------------------------------------------------------
-# Python 패키지 설치 - PyTorch (하이브리드 빌드 지원)
+# Python 패키지 설치 - PyTorch (공식 문서 권장 방식)
+# https://pytorch.org/get-started/locally/
 # -----------------------------------------------------------------------------
 ARG PYTORCH_VERSION
+ARG TORCHVISION_VERSION
+ARG TORCHAUDIO_VERSION
 ARG PYTORCH_INDEX_URL
 ARG BUILD_MODE
+
 RUN if [ -n "${PYTORCH_VERSION}" ]; then \
         if [ "$BUILD_MODE" = "offline" ] && [ -d "/tmp/wheels" ] && [ "$(ls -A /tmp/wheels 2>/dev/null)" ]; then \
             echo "=== Offline mode: Installing PyTorch from local wheels ==="; \
-            pip3 install --no-index --find-links=/tmp/wheels torch==${PYTORCH_VERSION} torchvision torchaudio; \
+            pip3 install --no-index --find-links=/tmp/wheels \
+                torch==${PYTORCH_VERSION} \
+                torchvision==${TORCHVISION_VERSION} \
+                torchaudio==${TORCHAUDIO_VERSION}; \
         else \
             echo "=== Online mode: Downloading PyTorch packages ==="; \
-            pip3 install --find-links ${PYTORCH_INDEX_URL} \
-            torch==${PYTORCH_VERSION} torchvision torchaudio ;\
+            echo "Using index: ${PYTORCH_INDEX_URL}"; \
+            echo "torch=${PYTORCH_VERSION}, torchvision=${TORCHVISION_VERSION}, torchaudio=${TORCHAUDIO_VERSION}"; \
+            pip3 install --index-url ${PYTORCH_INDEX_URL} \
+                torch==${PYTORCH_VERSION} \
+                torchvision==${TORCHVISION_VERSION} \
+                torchaudio==${TORCHAUDIO_VERSION}; \
         fi; \
     fi
 
@@ -184,7 +195,7 @@ COPY artifacts/${PRESET_NAME}/requirements-base.txt /tmp/requirements-base.txt
 RUN if [ "$BUILD_MODE" = "offline" ] && [ -d "/tmp/wheels" ] && [ "$(ls -A /tmp/wheels 2>/dev/null)" ]; then \
         echo "=== Offline mode: Installing base packages from local wheels ==="; \
         # PyTorch, numpy, scipy 등은 이미 설치되었으므로 제외
-        grep -v -E "^torch|^torchvision|^torchaudio|^numpy==|^scipy==" /tmp/requirements-base.txt > /tmp/filtered-base.txt; \
+        grep -v -E "^torch|^torchvision|^torchaudio|^numpy==|^scipy==|^--find-links|^--extra-index-url|^--index-url" /tmp/requirements-base.txt > /tmp/filtered-base.txt; \
         pip3 install --no-index --find-links=/tmp/wheels -r /tmp/filtered-base.txt; \
         rm /tmp/filtered-base.txt; \
     else \
@@ -297,8 +308,8 @@ RUN ldconfig
 COPY artifacts/${PRESET_NAME}/requirements.txt /tmp/requirements.txt
 RUN if [ "$BUILD_MODE" = "offline" ] && [ -d "/tmp/wheels" ] && [ "$(ls -A /tmp/wheels 2>/dev/null)" ]; then \
         echo "=== Offline mode: Installing runtime packages from local wheels ==="; \
-        # 이미 설치된 패키지들과 find-links 지시문 제외
-        grep -v -E "^torch|^torchvision|^torchaudio|^numpy==|^scipy==|^--find-links" /tmp/requirements.txt > /tmp/filtered-runtime.txt; \
+        # 이미 설치된 패키지들과 인덱스 URL 지시문 제외
+        grep -v -E "^torch|^torchvision|^torchaudio|^numpy==|^scipy==|^--find-links|^--extra-index-url|^--index-url" /tmp/requirements.txt > /tmp/filtered-runtime.txt; \
         pip3 install --no-index --find-links=/tmp/wheels -r /tmp/filtered-runtime.txt; \
         rm /tmp/filtered-runtime.txt; \
     else \

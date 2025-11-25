@@ -66,6 +66,10 @@ def build_docker_image(
         pytorch = preset["pytorch"]
         if "torch_version" in pytorch:
             build_args["PYTORCH_VERSION"] = pytorch["torch_version"]
+        if "torchvision_version" in pytorch:
+            build_args["TORCHVISION_VERSION"] = pytorch["torchvision_version"]
+        if "torchaudio_version" in pytorch:
+            build_args["TORCHAUDIO_VERSION"] = pytorch["torchaudio_version"]
         if "index_url" in pytorch:
             build_args["PYTORCH_INDEX_URL"] = pytorch["index_url"]
     

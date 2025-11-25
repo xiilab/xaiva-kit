@@ -147,20 +147,19 @@ vim artifacts/<preset-name>/requirements.txt
 **주요 수정 사항**:
 
 ```txt
-# PyTorch 버전 수정 (CUDA 버전과 일치)
---find-links https://download.pytorch.org/whl/torch_stable.html
-torch==2.2.0+cu121      # CUDA 12.1
-torchvision==0.17.0+cu121
-torchaudio==2.2.0+cu121
-
-# NumPy 버전도 동일하게 수정
+# NumPy/SciPy 버전 수정 (PyTorch 호환성 확인)
 numpy==1.26.0
 scipy==1.12.0
+
+# 주의: PyTorch는 Dockerfile에서 설치됨 (프리셋 JSON에서 버전 관리)
+# torch, torchvision, torchaudio는 여기에 포함하지 않음
 
 # 런타임 전용 패키지 추가 (필요 시)
 # fastapi
 # uvicorn
 ```
+
+**중요**: PyTorch 버전은 프리셋 JSON 파일의 `pytorch` 섹션에서 관리합니다.
 
 #### requirements-extra.txt 수정 (선택적)
 
@@ -232,7 +231,10 @@ python3 scripts/build.py --preset ubuntu22.04-cuda12.1-torch2.2
 {
   "base_image": "nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04",
   "pytorch": {
-    "torch_version": "2.1.0+cu118"
+    "torch_version": "2.1.0",
+    "torchvision_version": "0.16.0",
+    "torchaudio_version": "2.1.0",
+    "index_url": "https://download.pytorch.org/whl/cu118"
   },
   "tensorrt": {
     "version": "8.6.1"
@@ -247,9 +249,9 @@ python3 scripts/build.py --preset ubuntu22.04-cuda12.1-torch2.2
 ```txt
 numpy==1.23.1
 scipy==1.11.4
-torch==2.1.0+cu118
-torchvision==0.16.0+cu118
-torchaudio==2.1.0+cu118
+
+# PyTorch는 Dockerfile에서 설치됨 (프리셋 JSON 참조)
+# 버전에서 +cu118 접미사는 제거 (index_url에서 CUDA 버전 관리)
 ```
 
 ### CUDA 12.1 + PyTorch 2.2 (RTX 40 시리즈)
@@ -259,7 +261,10 @@ torchaudio==2.1.0+cu118
 {
   "base_image": "nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04",
   "pytorch": {
-    "torch_version": "2.2.0+cu121"
+    "torch_version": "2.2.0",
+    "torchvision_version": "0.17.0",
+    "torchaudio_version": "2.2.0",
+    "index_url": "https://download.pytorch.org/whl/cu121"
   },
   "tensorrt": {
     "version": "10.0.0"
@@ -274,9 +279,9 @@ torchaudio==2.1.0+cu118
 ```txt
 numpy==1.26.0
 scipy==1.12.0
-torch==2.2.0+cu121
-torchvision==0.17.0+cu121
-torchaudio==2.2.0+cu121
+
+# PyTorch는 Dockerfile에서 설치됨 (프리셋 JSON 참조)
+# 버전에서 +cu121 접미사는 제거 (index_url에서 CUDA 버전 관리)
 ```
 
 ### CUDA 12.4 + PyTorch 2.3 (최신)
@@ -286,7 +291,10 @@ torchaudio==2.2.0+cu121
 {
   "base_image": "nvidia/cuda:12.4.0-cudnn8-devel-ubuntu22.04",
   "pytorch": {
-    "torch_version": "2.3.0+cu124"
+    "torch_version": "2.3.0",
+    "torchvision_version": "0.18.0",
+    "torchaudio_version": "2.3.0",
+    "index_url": "https://download.pytorch.org/whl/cu124"
   },
   "tensorrt": {
     "version": "10.0.0"
@@ -301,9 +309,9 @@ torchaudio==2.2.0+cu121
 ```txt
 numpy==1.26.0
 scipy==1.12.0
-torch==2.3.0+cu124
-torchvision==0.18.0+cu124
-torchaudio==2.3.0+cu124
+
+# PyTorch는 Dockerfile에서 설치됨 (프리셋 JSON 참조)
+# 버전에서 +cu124 접미사는 제거 (index_url에서 CUDA 버전 관리)
 ```
 
 ---

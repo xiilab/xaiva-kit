@@ -106,26 +106,40 @@ PyTorch 및 관련 라이브러리 설정
 ```json
 {
   "pytorch": {
-    "version": "2.1.0+cu118",
-    "torch_version": "2.1.0+cu118",
-    "torchvision_version": "0.16.0+cu118",
-    "torchaudio_version": "2.1.0+cu118",
-    "index_url": "https://download.pytorch.org/whl/torch_stable.html"
+    "torch_version": "2.1.0",
+    "torchvision_version": "0.16.0",
+    "torchaudio_version": "2.1.0",
+    "index_url": "https://download.pytorch.org/whl/cu118"
   }
 }
 ```
 
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
-| `version` | string | ✅ | PyTorch 메인 버전 |
-| `torch_version` | string | ✅ | torch 패키지 버전 |
-| `torchvision_version` | string | ✅ | torchvision 패키지 버전 |
-| `torchaudio_version` | string | ✅ | torchaudio 패키지 버전 |
-| `index_url` | string | ✅ | PyTorch wheel 인덱스 URL |
+| `torch_version` | string | ✅ | torch 패키지 버전 (CUDA 접미사 없음) |
+| `torchvision_version` | string | ✅ | torchvision 패키지 버전 (CUDA 접미사 없음) |
+| `torchaudio_version` | string | ✅ | torchaudio 패키지 버전 (CUDA 접미사 없음) |
+| `index_url` | string | ✅ | PyTorch 다운로드 인덱스 URL (CUDA 버전 포함) |
 
-**버전 명명 규칙:**
-- `+cu118`: CUDA 11.8용
-- `+cu121`: CUDA 12.1용
+**버전 명명 규칙 (공식 문서):**
+- 버전에서 `+cu118` 같은 CUDA 접미사 제거
+- CUDA 버전은 `index_url`에서 지정
+- 예: `"2.1.0"` (O), `"2.1.0+cu118"` (X)
+
+**Index URL 예시 (공식 문서):**
+- CUDA 11.8: `https://download.pytorch.org/whl/cu118`
+- CUDA 12.1: `https://download.pytorch.org/whl/cu121`
+- CUDA 12.4: `https://download.pytorch.org/whl/cu124`
+- CPU only: `https://download.pytorch.org/whl/cpu`
+
+**설치 방식 (공식 문서):**
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+**주의사항:**
+- PyTorch는 Dockerfile에서 `--index-url` 방식으로 설치됨
+- requirements.txt에는 PyTorch 패키지를 포함하지 않음
 
 ---
 

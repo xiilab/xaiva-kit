@@ -9,8 +9,10 @@
     "version_without_dot": "310"
   },
   "pytorch": {
-    "torch_version": "2.1.0+cu118",
-    "index_url": "https://download.pytorch.org/whl/torch_stable.html"
+    "torch_version": "2.1.0",
+    "torchvision_version": "0.16.0",
+    "torchaudio_version": "2.1.0",
+    "index_url": "https://download.pytorch.org/whl/cu118"
   },
   "tensorrt": {
     "version": "8.6.1.post1"
