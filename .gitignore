@@ -2,7 +2,9 @@
 .env
 
 # Artifacts (large binary files)
-artifacts/
+artifacts/*/wheels/
+artifacts/*/debs/
+artifacts/*/sources/
 
 # Python
 __pycache__/

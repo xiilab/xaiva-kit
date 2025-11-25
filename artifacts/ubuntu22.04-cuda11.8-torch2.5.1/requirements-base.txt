@@ -1,0 +1,25 @@
+# Core dependencies (version-locked)
+numpy==1.26.4
+scipy==1.13.1
+
+# Data processing and utilities
+packaging
+webcolors
+matplotlib
+yacs
+scikit-learn==1.5.2
+scikit-image
+torchgeometry
+pytz
+requests
+
+# Infrastructure
+redis
+GPUtil
+
+# Computer vision
+# Note: opencv-python is skipped as we build OpenCV from source with CUDA support
+# opencv-python
+
+# Additional utilities
+gdown

@@ -1,0 +1,29 @@
+# Core dependencies (version-locked)
+numpy==1.23.1
+scipy==1.11.4
+
+# PyTorch는 Dockerfile에서 직접 설치됨 (프리셋 JSON 참조)
+# torch, torchvision, torchaudio는 여기에 포함하지 않음
+
+# Data processing and utilities
+packaging
+webcolors
+matplotlib
+yacs
+scikit-learn
+scikit-image
+torchgeometry
+pytz
+requests
+
+# Infrastructure
+redis
+GPUtil
+
+# Computer vision
+# Note: opencv-python is skipped as we build OpenCV from source with CUDA support
+# opencv-python
+
+# Additional utilities
+gdown
+
